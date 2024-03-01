@@ -7,10 +7,6 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-
 /**
  * @struct Value
  *
