@@ -17,7 +17,7 @@ This is a implementation of a very lightweight autograd engine using C and CUDA 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/AndrewBoessen/CUDAgrad.git
+   git clone https://github.com/AndrewBoessen/CUDAgrad
    ```
 
 2. Navigate to the project directory:
