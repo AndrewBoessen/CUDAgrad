@@ -90,6 +90,8 @@ Value* sub(Value* a, Value* b) {
 
 /**
  * Function to calculate gradient of Value object that is a sum
+ * 
+ * Computes gradient with respect to the operands
  *
  * @param v Pointer to the Value object resulting from addition
  */
@@ -100,6 +102,8 @@ void add_backwards(Value* v) {
 
 /**
  * Function to calculate gradient of Value object that is a difference
+ *
+ * Computes the gradient with respect to the operands
  *
  * @param v Pointer to Value object resulting from subtraction
  */
