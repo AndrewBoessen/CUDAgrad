@@ -7,6 +7,8 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
+#include <stdlib.h>
+
 /**
  * @struct Value
  *
@@ -34,8 +36,28 @@ typedef struct Value {
 Value* init_value(float x);
 
 /**
+ * This function takes an array of floats and initializes an array of Value objects
+ */
+Value** init_values(float* arr, size_t len);
+
+/**
+ * This function takes two values and returns a new Value object with the sum of the two inputs
+ */
+Value* add(Value* a, Value* b);
+
+/**
+ * This function takes two Value objects and returns new Value object with difference
+ */
+Value* sub(Value* a, Value* b);
+
+/**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
  */
 void print_value(Value* v);
+
+/**
+ * Recursivly go down children map and output values
+ */
+void print_children(Value* v);
 
 #endif /* AUTODIFF_H */
