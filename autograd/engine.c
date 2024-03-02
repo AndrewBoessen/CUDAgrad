@@ -71,7 +71,7 @@ Value* add(Value* a, Value* b) {
 /**
  * This function takes two Value objects and returns new Value object with difference
  *
- * @param a Value to subtrace
+ * @param a Value to subtract
  * @param b Value to subtract
  */
 Value* sub(Value* a, Value* b) {
