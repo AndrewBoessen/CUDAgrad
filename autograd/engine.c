@@ -50,6 +50,9 @@ Value* init_value(float x) {
 
 /**
  * This function takes two values and returns a new Value object with the sum of the two inputs
+ *
+ * @param a forst value to add
+ * @param b Second value to add
  */
 Value* add(Value* a, Value* b) {
    Value* out = (Value*)malloc(sizeof(Value));
@@ -61,12 +64,15 @@ Value* add(Value* a, Value* b) {
    out->children[0] = a;
    out->children[1] = b;
    out->n_children = 2;
-   out->backward = NULL;
+   out->backward = add_backwards;
    return out;
 }
 
 /**
  * This function takes two Value objects and returns new Value object with difference
+ *
+ * @param a Value to subtrace
+ * @param b Value to subtract
  */
 Value* sub(Value* a, Value* b) {
     Value* out = (Value*)malloc(sizeof(Value));
@@ -78,8 +84,28 @@ Value* sub(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = NULL;
+    out->backward = sub_backwards;
     return out;
+}
+
+/**
+ * Function to calculate gradient of Value object that is a sum
+ *
+ * @param v Pointer to the Value object resulting from addition
+ */
+void add_backwards(Value* v) {
+    v->children[0]->grad += v->grad;
+    v->children[1]->grad += v->grad;
+}
+
+/**
+ * Function to calculate gradient of Value object that is a difference
+ *
+ * @param v Pointer to Value object resulting from subtraction
+ */
+void sub_backwards(Value* v) {
+    v->children[0]->grad += v->grad;
+    v->children[1]->grad -= v->grad;
 }
 
 /**
@@ -92,7 +118,7 @@ void print_value(Value* v) {
 }
 
 /**
- * Recursivly go down children map and output values
+ * Recursivly go down children map and output values. This prints the expression of v in postfix notation
  * 
  * @param v Pointer to starting Value in graph
  */
@@ -106,5 +132,16 @@ void print_children(Value *v) {
         print_children(v->children[1]);
     }
 
-    printf("Value(val=%.2f, grad=%.2f)\n", v->val, v->grad);
+    char operand;
+    if (v->backward == add_backwards) {
+        operand = '+';
+    } else if (v->backward == sub_backwards) {
+        operand = '-';
+    }
+
+    if (v->n_children == 0) {
+        printf("%.2f ", v->val);
+    } else {
+        printf("%c %.2f ", operand, v->val);
+    }
 }

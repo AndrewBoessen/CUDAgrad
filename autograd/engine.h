@@ -51,6 +51,16 @@ Value* add(Value* a, Value* b);
 Value* sub(Value* a, Value* b);
 
 /**
+ * Function to calculate gradient of Value object that is a sum
+ */
+void add_backwards(Value* v);
+
+/**
+ * Function to calculate gradient of Value object that is a difference
+ */
+void sub_backwards(Value* v);
+
+/**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
  */
 void print_value(Value* v);
