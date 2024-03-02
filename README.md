@@ -5,7 +5,7 @@ Inspired by [@karpathy's - micrograd](https://github.com/karpathy/micrograd).
 ![Gradient Descent](./gd.jpg)
 
 An autograd engine is the technical implementation of backpropogation algorithm that allows neural nets to learn.
-This is a implemtation of a very lightweight autograd engine using C and CUDA for gpu acceleration.
+This is a implementation of a very lightweight autograd engine using C and CUDA for gpu acceleration.
 
 ## Dependencies
 
@@ -54,6 +54,8 @@ int main(int argc, char** argv) {
     // Z = (X + Y) - T
     Value* z = sub(sum, t);
 
+    // Outputs expression in postfix notation:
+    // X Y + T - = Z
     print_expression(z);
 
     return EXIT_SUCCESS;
