@@ -15,7 +15,7 @@ int main(int argc, char** argv) {
     // Z = (X + Y) - T
     Value* z = sub(sum, t);
 
-    //print_children(z);
+    print_expression(z);
     
     // Add 4 Values together
     Value* x1 = init_value(1);
