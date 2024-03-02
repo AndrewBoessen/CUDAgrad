@@ -70,4 +70,9 @@ void print_value(Value* v);
  */
 void print_children(Value* v);
 
+/**
+ * Print the expression of Value v
+ */
+void print_expression(Value* v);
+
 #endif /* AUTODIFF_H */

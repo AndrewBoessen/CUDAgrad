@@ -142,6 +142,14 @@ void print_children(Value *v) {
     if (v->n_children == 0) {
         printf("%.2f ", v->val);
     } else {
-        printf("%c %.2f ", operand, v->val);
+        printf("%c ", operand);
     }
+}
+
+/**
+ * Print the expression of Value v
+ */
+void print_expression(Value* v) {
+    print_children(v);
+    printf("= %.2f\n", v->val);
 }
