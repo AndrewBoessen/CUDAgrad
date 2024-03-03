@@ -56,7 +56,8 @@ Value* sub(Value* a, Value* b);
 Value* mult(Value* a, Value* b);
 
 /**
- * This function takes two Value objects and devides them and returns a value with the quotient*/
+ * This function takes two Value objects and devides them and returns a value with the quotient
+ */
 Value* divide(Value* a, Value* b);
 
 /**
