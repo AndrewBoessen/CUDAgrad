@@ -5,7 +5,7 @@ ENG = engine
 
 all: $(ENG)
 
-$(ENG) : ./$(APP)/$(ENG).c main.c
+$(ENG) : ./$(APP)/$(ENG).c ./$(APP)/main.c
 	$(CC) $(FLAGS) $^ -o $@.out
 
 clean:
