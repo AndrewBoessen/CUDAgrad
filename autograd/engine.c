@@ -53,6 +53,7 @@ Value* init_value(float x) {
  *
  * @param a forst value to add
  * @param b Second value to add
+ * @return A pointer to the new Value object representing the sum.
  */
 Value* add(Value* a, Value* b) {
    Value* out = (Value*)malloc(sizeof(Value));
@@ -73,6 +74,7 @@ Value* add(Value* a, Value* b) {
  *
  * @param a Value to subtract
  * @param b Value to subtract
+ * @return A pointer to the new Value object representing the difference.
  */
 Value* sub(Value* a, Value* b) {
     Value* out = (Value*)malloc(sizeof(Value));
@@ -85,6 +87,51 @@ Value* sub(Value* a, Value* b) {
     out->children[1] = b;
     out->n_children = 2;
     out->backward = sub_backwards;
+    return out;
+}
+
+/**
+ * This function takes two value objects and multiplies them together and returns new Value with the product
+ *
+ * @param a Value to multiply
+ * @param b Value to multiply by
+ * @return A pointer to the new Value object representing the product.
+ */
+Value* mul(Value* a, Value* b) {
+    Value* out = (Value*)malloc(sizeof(Value));
+    out->val = a->val * b->val;
+    out->grad = 0;
+    // Allocate memory for children
+    out->children = (Value**)malloc(2 * sizeof(Value*));
+    // Set children
+    out->children[0] = a;
+    out->children[1] = b;
+    out->n_children = 2;
+    out->backward = NULL;
+    return out;
+}
+
+/**
+ * This function takes two Value objects and devides them and returns a value with the quotient
+ *
+ * @param a Pointer to the numerator Value object.
+ * @param b Pointer to the denominator Value object.
+ * @return A pointer to the new Value object representing the quotient.
+ */
+Value* divide(Value* a, Value* b) {
+    if(b->val == 0.0) {
+        printf("Error: Division by zero\n");
+        exit(1);
+    }
+
+    Value* out = (Value*)malloc(sizeof(Value));
+    out->val = a->val / b->val;
+    out->grad = 0;
+    out->children = (Value**)malloc(2 * sizeof(Value*));
+    out->children[0] = a;
+    out->children[1] = b;
+    out->n_children = 2;
+    out->backward = NULL;
     return out;
 }
 
@@ -106,10 +153,59 @@ void add_backwards(Value* v) {
  * Computes the gradient with respect to the operands
  *
  * @param v Pointer to Value object resulting from subtraction
+ *
+ * @note
+ * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
+ * The local derivative for the subtraction is:
+ *     dv/da (locally) = 1
+ *     dv/db (locally) = -1
+ * The external gradient (from parent nodes) is stored in v->grad.
+ * Thus, the final gradient for a is: dv/da = 1 * v->grad
+ * And for b is: dv/db = -1 * v->grad
  */
 void sub_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad -= v->grad;
+}
+
+/**
+ * Computes the gradient of the multiplication operation with respect to its operands.
+ *
+ * @param v Pointer to the Value object resulting from the multiplication.
+ *
+ * @note
+ * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
+ * The local derivative for the multiplication is:
+ *     dv/da (locally) = b
+ *     dv/db (locally) = a
+ * The external gradient (from parent nodes) is stored in v->grad.
+ * Thus, the final gradient for a is: dv/da = b * v->grad
+ * And for b is: dv/db = a * v->grad
+ */
+void mul_backward(Value* v) {
+    // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
+    // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
+    v->children[0]->grad += v->children[1]->val * v->grad;
+    v->children[1]->grad += v->children[0]->val * v->grad;
+}
+
+/**
+ * Computes the gradient of the division operation with respect to its operands.
+ *
+ * @param v Pointer to the Value object resulting from the division.
+ *
+ * @note
+ * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
+ * The local derivative for the division is:
+ *     dv/da (locally) = 1/b
+ *     dv/db (locally) = -a/(b^2)
+ * The external gradient (from parent nodes) is stored in v->grad.
+ * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
+ * And for b is: dv/db = (-a/(b^2)) * v->grad
+ */
+void div_backward(Value* v) {
+    v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
+    v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
 
 /**

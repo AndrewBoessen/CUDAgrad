@@ -53,7 +53,7 @@ Value* sub(Value* a, Value* b);
 /**
  * This function takes two value objects and multiplies them together and returns new Value with the product
  */
-Value* mult(Value* a, Value* b);
+Value* mul(Value* a, Value* b);
 
 /**
  * This function takes two Value objects and devides them and returns a value with the quotient
@@ -69,6 +69,16 @@ void add_backwards(Value* v);
  * Function to calculate gradient of Value object that is a difference
  */
 void sub_backwards(Value* v);
+
+/**
+ * Computes the gradient of the multiplication operation with respect to its operands.
+ */
+void mul_backward(Value* v);
+
+/**
+ * Computes the gradient of the division operation with respect to its operands.
+ */
+void div_backward(Value* v);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
