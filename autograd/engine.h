@@ -51,6 +51,15 @@ Value* add(Value* a, Value* b);
 Value* sub(Value* a, Value* b);
 
 /**
+ * This function takes two value objects and multiplies them together and returns new Value with the product
+ */
+Value* mult(Value* a, Value* b);
+
+/**
+ * This function takes two Value objects and devides them and returns a value with the quotient*/
+Value* divide(Value* a, Value* b);
+
+/**
  * Function to calculate gradient of Value object that is a sum
  */
 void add_backwards(Value* v);
