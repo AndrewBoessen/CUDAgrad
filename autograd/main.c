@@ -30,5 +30,15 @@ int main(int argc, char** argv) {
 
     print_expression(sum_all);
 
+    // Multiply and Divide
+    Value* a = init_value(15);
+    Value* b = init_value(5);
+    
+    Value* prod = mul(a, b);
+
+    Value* quotient = divide(prod, init_value(5));
+
+    print_expression(quotient);
+
     return EXIT_SUCCESS;
 }

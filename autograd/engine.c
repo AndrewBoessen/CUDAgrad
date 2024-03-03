@@ -107,7 +107,7 @@ Value* mul(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = NULL;
+    out->backward = mul_backward;
     return out;
 }
 
@@ -131,7 +131,7 @@ Value* divide(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = NULL;
+    out->backward = div_backward;
     return out;
 }
 
@@ -237,6 +237,12 @@ void print_children(Value *v) {
         operand = '+';
     } else if (v->backward == sub_backwards) {
         operand = '-';
+    } else if (v->backward == mul_backward) {
+        operand = '*';
+    } else if (v->backward == div_backward) {
+        operand = '/';
+    } else {
+        operand = ' ';
     }
 
     if (v->n_children == 0) {
