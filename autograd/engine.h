@@ -7,13 +7,15 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
+#include <cuda_runtime.h>
+
 #include <stdlib.h>
 
 // Define type for backwards functions
 #ifdef CUDA
-#define BACK_FUNC_TYPE __device__
+    #define BACK_FUNC_TYPE __device__
 #else
-#define BACK_FUNC_TYPE __host__
+    #define BACK_FUNC_TYPE __host__
 #endif
 
 /**
