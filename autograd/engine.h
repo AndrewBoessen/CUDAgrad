@@ -9,6 +9,13 @@
 
 #include <stdlib.h>
 
+// Define type for backwards functions
+#ifdef CUDA
+#define BACK_FUNC_TYPE __device__
+#else
+#define BACK_FUNC_TYPE __host__
+#endif
+
 /**
  * @struct Value
  *
@@ -63,22 +70,22 @@ Value* divide(Value* a, Value* b);
 /**
  * Function to calculate gradient of Value object that is a sum
  */
-void add_backwards(Value* v);
+BACK_FUNC_TYPE void add_backwards(Value* v);
 
 /**
  * Function to calculate gradient of Value object that is a difference
  */
-void sub_backwards(Value* v);
+BACK_FUNC_TYPE void sub_backwards(Value* v);
 
 /**
  * Computes the gradient of the multiplication operation with respect to its operands.
  */
-void mul_backward(Value* v);
+BACK_FUNC_TYPE void mul_backward(Value* v);
 
 /**
  * Computes the gradient of the division operation with respect to its operands.
  */
-void div_backward(Value* v);
+BACK_FUNC_TYPE void div_backward(Value* v);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
