@@ -136,6 +136,26 @@ Value* divide(Value* a, Value* b) {
 }
 
 /**
+ * This function creates a new Value object that represents one Value object raised to the power of another.
+ * The resulting Value object will have a backward function assigned for gradient computation.
+ *
+ * @param base Pointer to the base Value object.
+ * @param exponent Pointer to the exponent Value object.
+ * @return A pointer to the new Value object representing the power result.
+ */
+Value* power(Value* a, Value* b) {
+    Value* out = (Value*)malloc(sizeof(Value));
+    out->val = pow(a->val, b->val);
+    out->grad = 0;
+    out->children = (Value**)malloc(2 * sizeof(Value*));
+    out->children[0] = a;
+    out->children[1] = b;
+    out->n_children = 2;
+    out->backward = power_backward;
+    return out;
+}
+
+/**
  * Function to calculate gradient of Value object that is a sum
  * 
  * Computes gradient with respect to the operands
@@ -207,6 +227,28 @@ void div_backward(Value* v) {
     v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
     v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
+
+/**
+ * Computes the gradient of the power operation with respect to its operands.
+ *
+ * @param v Pointer to the Value object resulting from the power operation.
+ *
+ * @note
+ * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
+ * The local derivative for the power operation is:
+ *     dv/da (locally) = b * a^(b-1)
+ *     dv/db (locally) = a^b * log(a)
+ * The external gradient (from parent nodes) is stored in v->grad.
+ * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
+ * And for b is: dv/db = (v * log(a)) * v->grad
+ */
+void power_backward(Value* v) {
+    v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
+    if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
+        v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;
+    }
+}
+
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.

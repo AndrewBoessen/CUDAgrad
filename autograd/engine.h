@@ -61,6 +61,12 @@ Value* mul(Value* a, Value* b);
 Value* divide(Value* a, Value* b);
 
 /**
+ * This function creates a new Value object that represents one Value object raised to the power of another.
+ * The resulting Value object will have a backward function assigned for gradient computation.
+ */
+Value* power(Value* a, Value* b);
+
+/**
  * Function to calculate gradient of Value object that is a sum
  */
 void add_backwards(Value* v);
@@ -79,6 +85,11 @@ void mul_backward(Value* v);
  * Computes the gradient of the division operation with respect to its operands.
  */
 void div_backward(Value* v);
+
+/**
+ * Computes the gradient of the power operation with respect to its operands.
+ */
+void power_backward(Value* v);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
