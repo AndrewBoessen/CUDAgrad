@@ -250,7 +250,47 @@ void power_backward(Value* v) {
 }
 
 /**
- * This function builds a topological order of the computation graph, starting from the given Value object.
+ * This function doubles the capacity of the topo array, which stores the
+ * topological order of the computation graph. It does this by allocating a new
+ * array with double the capacity, copying the existing data to the new array,
+ * and updating the topo pointer to point to the new array.
+ *
+ * @param topo Pointer to the pointer that holds the topo array.
+ * @param topo_size Pointer to the variable that holds the current size of the topo array.
+ * @param topo_capacity Pointer to the variable that holds the current capacity of the topo array.
+ */
+void resize_topo_array(Value*** topo, int* topo_size, int* topo_capacity) {
+    *topo_capacity *= 2;
+    Value** new_topo = realloc(*topo, *topo_capacity * sizeof(Value*));
+    if (new_topo == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
+    *topo = new_topo;
+}
+
+/**
+ * This function doubles the capacity of the visited array, which keeps track of
+ * visited Value objects during the topological sort. It does this by allocating a new
+ * array with double the capacity, copying the existing data to the new array,
+ * and updating the visited pointer to point to the new array.
+ *
+ * @param visited Pointer to the pointer that holds the visited array.
+ * @param visited_size Pointer to the variable that holds the current size of the visited array.
+ * @param visited_capacity Pointer to the variable that holds the current capacity of the visited array.
+ */
+void resize_visited_array(Value*** visited, int* visited_size, int* visited_capacity) {
+    *visited_capacity *= 2;
+    Value** new_visited = realloc(*visited, *visited_capacity * sizeof(Value*));
+    if (new_visited == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
+    *visited = new_visited;
+}
+
+/**
+ * Helper function to build a topological order of the computation graph, starting from the given Value object.
  *
  * @param v The starting Value object for the topological sort.
  * @param topo A pointer to an array where the topological order will be stored.
@@ -258,30 +298,55 @@ void power_backward(Value* v) {
  * @param visited Pointer to an array that keeps track of visited Value objects.
  * @param visited_size Pointer to the size of the visited array.
  */
-void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
+void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity) {
     for (int i = 0; i < *visited_size; ++i) {
-        if (visited[i] == v) return;
+        if ((*visited)[i] == v) return;
     }
 
-    visited[*visited_size] = v;
+    if (*visited_size == *visited_capacity) {
+        resize_visited_array(visited, visited_size, visited_capacity);
+    }
+    (*visited)[*visited_size] = v;
     (*visited_size)++;
-    // printf("%i\n", v->n_children);
 
     for (int i = 0; i < v->n_children; ++i) {
-        // printf("child of %f\n", v->val);
-        for (int i = 0; i < v->n_children; ++i) {
-            // print_value(v->children[i]);
-        }
-        // printf("\n\n");
-        build_topo(v->children[i], topo, topo_size, visited, visited_size);
+        build_topo(v->children[i], topo, topo_size, topo_capacity, visited, visited_size, visited_capacity);
     }
 
-    // printf("topo size = %i, node.val = %.2f\n", *topo_size, v->val);
-    
-
-    topo[*topo_size] = v;
+    if (*topo_size == *topo_capacity) {
+        resize_topo_array(topo, topo_size, topo_capacity);
+    }
+    (*topo)[*topo_size] = v;
     (*topo_size)++;
+}
 
+/**
+ * Function to create a list of nodes in topological order in CUDA memory
+ *
+ * @param root
+ */
+Value* create_topological_list_cuda(Value* root) {
+    int num_nodes = 0;
+    int num_visited = 0;
+    Value** visited = malloc(INITIAL_SIZE * sizeof(Value*));
+    Value** sorted_nodes = malloc(INITIAL_SIZE * sizeof(Value*));
+    int topo_capacity = INITIAL_SIZE;
+    int visited_capacity = INITIAL_SIZE;
+
+    build_topo(root, &sorted_nodes, &num_nodes, &topo_capacity, &visited, &num_visited, &visited_capacity);
+
+    // Allocate memory on the GPU
+    Value* cuda_nodes;
+    cudaMalloc((void**)&cuda_nodes, num_nodes * sizeof(Value));
+
+    // Copy data from CPU to GPU
+    cudaMemcpy(cuda_nodes, sorted_nodes, num_nodes * sizeof(Value), cudaMemcpyHostToDevice);
+
+    // Free CPU memory
+    free(sorted_nodes);
+    free(visited);
+
+    return cuda_nodes;
 }
 
 

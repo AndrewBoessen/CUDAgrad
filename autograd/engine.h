@@ -11,6 +11,8 @@
 
 #include <stdlib.h>
 
+#define INITIAL_SIZE 10
+
 /**
  * @struct Value
  *
@@ -94,9 +96,24 @@ __device__ void div_backward(Value* v);
 void power_backward(Value* v);
 
 /**
+ * Resizes the topo array by doubling its capacity.
+ */
+void resize_topo_array(Value*** topo, int* topo_size, int* topo_capacity);
+
+/**
+ *  Resizes the visited array by doubling its capacity.
+ */
+void resize_visited_array(Value*** visited, int* visited_size, int* visited_capacity);
+
+/**
  * This function builds a topological order of the computation graph, starting from the given Value object.
  */
-void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size);
+void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity);
+ 
+/**
+ * Function to create a list of nodes in topological order in CUDA memory
+ */
+Value* create_topological_list_cuda(Value* root);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
