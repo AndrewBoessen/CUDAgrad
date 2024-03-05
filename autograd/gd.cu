@@ -1,3 +1,9 @@
+/*
+* Implement gradient descent part of autograd engine in CUDA
+*
+* Author: Andrew Boessen
+*/
+
 #include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -31,43 +37,13 @@ void printCudaInfo()
 }
 
 /**
- * Function to create a list of nodes in topological order in CUDA memory
- *
- * @param root
- */
-Value* create_topological_list_cuda(Value* root) {
-    int num_nodes = 0;
-    int num_visited = 0;
-    Value** visited = (Value**)malloc(INITIAL_SIZE * sizeof(Value*));
-    Value** sorted_nodes = (Value**)malloc(INITIAL_SIZE * sizeof(Value*));
-    int topo_capacity = INITIAL_SIZE;
-    int visited_capacity = INITIAL_SIZE;
-
-    build_topo(root, &sorted_nodes, &num_nodes, &topo_capacity, &visited, &num_visited, &visited_capacity);
-
-    // Allocate memory on the GPU
-    Value* cuda_nodes;
-    cudaMalloc((void**)&cuda_nodes, num_nodes * sizeof(Value));
-
-    // Copy data from CPU to GPU
-    cudaMemcpy(cuda_nodes, sorted_nodes, num_nodes * sizeof(Value), cudaMemcpyHostToDevice);
-
-    // Free CPU memory
-    free(sorted_nodes);
-    free(visited);
-
-    return cuda_nodes;
-}
-
-
-/**
  * Function to calculate gradient of Value object that is a sum
  * 
  * Computes gradient with respect to the operands
  *
  * @param v Pointer to the Value object resulting from addition
  */
-__device__ void add_backwards(Value* v) {
+BACK_FUNC_TYPE void add_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad += v->grad;
 }
@@ -88,7 +64,7 @@ __device__ void add_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = 1 * v->grad
  * And for b is: dv/db = -1 * v->grad
  */
-__device__ void sub_backwards(Value* v) {
+BACK_FUNC_TYPE void sub_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad -= v->grad;
 }
@@ -107,7 +83,7 @@ __device__ void sub_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = b * v->grad
  * And for b is: dv/db = a * v->grad
  */
-__device__ void mul_backward(Value* v) {
+BACK_FUNC_TYPE void mul_backward(Value* v) {
     // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
     // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
     v->children[0]->grad += v->children[1]->val * v->grad;
@@ -128,7 +104,7 @@ __device__ void mul_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
  * And for b is: dv/db = (-a/(b^2)) * v->grad
  */
-__device__ void div_backward(Value* v) {
+BACK_FUNC_TYPE void div_backward(Value* v) {
     v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
     v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
@@ -147,10 +123,60 @@ __device__ void div_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
  * And for b is: dv/db = (v * log(a)) * v->grad
  */
-__device__ void power_backward(Value* v) {
+BACK_FUNC_TYPE void power_backward(Value* v) {
     v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
     if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
         v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;
     }
+}
+
+/**
+ * This helper function doubles the capacity of array. It does this by allocating a new
+ * array with double the capacity, copying the existing data to the new array,
+ * and updating the topo pointer to point to the new array.
+ *
+ * @param arr Pointer to the pointer that holds the array.
+ * @param arr_size Pointer to the variable that holds the current size of the array.
+ * @param arr_capacity Pointer to the variable that holds the current capacity of the array.
+ */
+void resize_array(Value*** arr, int* arr_size, int* arr_capacity) {
+    *arr_capacity *= 2;
+    Value** new_arr = (Value**)realloc(*arr, *arr_capacity * sizeof(Value*));
+    if (new_arr == NULL) {
+        printf("Memory allocation failed.\n");
+        exit(1);
+    }
+    *arr = new_arr;
+}
+
+/**
+ * Helper function to build a topological order of the computation graph, starting from the given Value object.
+ *
+ * @param v The starting Value object for the topological sort.
+ * @param topo A pointer to an array where the topological order will be stored.
+ * @param topo_size Pointer to the size of the topo array.
+ * @param visited Pointer to an array that keeps track of visited Value objects.
+ * @param visited_size Pointer to the size of the visited array.
+ */
+void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity) {
+    for (int i = 0; i < *visited_size; ++i) {
+        if ((*visited)[i] == v) return;
+    }
+
+    if (*visited_size == *visited_capacity) {
+        resize_array(visited, visited_size, visited_capacity);
+    }
+    (*visited)[*visited_size] = v;
+    (*visited_size)++;
+
+    for (int i = 0; i < v->n_children; ++i) {
+        build_topo(v->children[i], topo, topo_size, topo_capacity, visited, visited_size, visited_capacity);
+    }
+
+    if (*topo_size == *topo_capacity) {
+        resize_array(topo, topo_size, topo_capacity);
+    }
+    (*topo)[*topo_size] = v;
+    (*topo_size)++;
 }
 }

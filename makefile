@@ -3,12 +3,15 @@ FLAGS = -Wall -Werror -std=c99
 APP = autograd
 ENG = engine
 
-all: $(ENG)
+all: $(ENG)_cpu $(ENG)_gpu
 
-$(ENG) : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
+$(ENG)_cpu : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
 	$(CC) $^ -o $@.out
 
+$(ENG)_gpu : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
+	$(CC) $^ -D CUDA -o $@.out
+
 clean:
-	rm -f $(ENG).out
+	rm -f $(ENG)*.out
 
 

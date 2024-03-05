@@ -2,7 +2,6 @@
 #include <stdlib.h>
 
 #include "engine.h"
-#include "gd.cuh"
 
 int main(int argc, char** argv) {
     // Print GPU Info

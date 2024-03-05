@@ -9,6 +9,17 @@
 
 #include <stdlib.h>
 
+#ifdef CUDA
+int gpu_device_id = 0;
+// Get the device ID of the GPU
+cudaGetDevice(&gpu_device_id);
+#define MAIN_DEVICE gpu_device_id
+#define BACK_FUNC_TYPE __device__
+#else
+#define MAIN_DEVICE cudaCpuDeviceId
+#define BACK_FUNC_TYPE __host__
+#endif
+
 #define INITIAL_SIZE 10
 
 /**
@@ -69,6 +80,32 @@ Value* divide(Value* a, Value* b);
 Value* power(Value* a, Value* b);
 
 /**
+ * Function to calculate gradient of Value object that is a sum
+ */
+void add_backwards(Value* v);
+
+/**
+ * Function to calculate gradient of Value object that is a difference
+ */
+void sub_backwards(Value* v);
+
+/**
+ * Computes the gradient of the multiplication operation with respect to its operands.
+ */
+void mul_backward(Value* v);
+
+/**
+ * Computes the gradient of the division operation with respect to its operands.
+ */
+void div_backward(Value* v);
+
+/**
+ * Computes the gradient of the power operation with respect to its operands.
+ */
+void power_backward(Value* v);
+
+
+/**
  * This function builds a topological order of the computation graph, starting from the given Value object.
  */
 void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity);
@@ -87,5 +124,7 @@ void print_children(Value* v);
  * Print the expression of Value v
  */
 void print_expression(Value* v);
+
+void printCudaInfo();
 
 #endif /* AUTODIFF_H */

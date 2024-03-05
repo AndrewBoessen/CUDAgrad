@@ -9,7 +9,6 @@
 #include <math.h>
 
 #include "engine.h"
-#include "gd.cuh"
 
 /**
  * This function allocates memory for a Value object and initializes its attributes.
@@ -155,57 +154,6 @@ Value* power(Value* a, Value* b) {
     out->backward = power_backward;
     return out;
 }
-
-/**
- * This helper function doubles the capacity of array. It does this by allocating a new
- * array with double the capacity, copying the existing data to the new array,
- * and updating the topo pointer to point to the new array.
- *
- * @param arr Pointer to the pointer that holds the array.
- * @param arr_size Pointer to the variable that holds the current size of the array.
- * @param arr_capacity Pointer to the variable that holds the current capacity of the array.
- */
-void resize_array(Value*** arr, int* arr_size, int* arr_capacity) {
-    *arr_capacity *= 2;
-    Value** new_arr = realloc(*arr, *arr_capacity * sizeof(Value*));
-    if (new_arr == NULL) {
-        printf("Memory allocation failed.\n");
-        exit(1);
-    }
-    *arr = new_arr;
-}
-
-/**
- * Helper function to build a topological order of the computation graph, starting from the given Value object.
- *
- * @param v The starting Value object for the topological sort.
- * @param topo A pointer to an array where the topological order will be stored.
- * @param topo_size Pointer to the size of the topo array.
- * @param visited Pointer to an array that keeps track of visited Value objects.
- * @param visited_size Pointer to the size of the visited array.
- */
-void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity) {
-    for (int i = 0; i < *visited_size; ++i) {
-        if ((*visited)[i] == v) return;
-    }
-
-    if (*visited_size == *visited_capacity) {
-        resize_array(visited, visited_size, visited_capacity);
-    }
-    (*visited)[*visited_size] = v;
-    (*visited_size)++;
-
-    for (int i = 0; i < v->n_children; ++i) {
-        build_topo(v->children[i], topo, topo_size, topo_capacity, visited, visited_size, visited_capacity);
-    }
-
-    if (*topo_size == *topo_capacity) {
-        resize_array(topo, topo_size, topo_capacity);
-    }
-    (*topo)[*topo_size] = v;
-    (*topo_size)++;
-}
-
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
