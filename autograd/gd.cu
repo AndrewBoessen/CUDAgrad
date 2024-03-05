@@ -4,6 +4,7 @@
 * Author: Andrew Boessen
 */
 
+#include <stddef.h>
 #include <stdio.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -37,13 +38,48 @@ void printCudaInfo()
 }
 
 /**
+ * This helper function allocates new memory for a specified amout of Values.
+ *
+ * @param v (return paramter) The pointer to the start of the Values in memory
+ * @param num Number of values to allocate
+ */
+void allocValue(Value* v, size_t num) {
+    cudaError_t err = cudaMallocManaged(&v, num * sizeof(Value));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaMallocManaged failed while allocating Value: %s\n", cudaGetErrorString(err));
+        // Handle the error appropriately
+        exit(1);
+    }
+    // Prefetch memory to correct devices (e.g. CPU or GPU)
+    cudaMemPrefetchAsync(v, num * sizeof(Value), MAIN_DEVICE);
+}
+
+/**
+ * This helper function allocates new memory for an array of Values.
+ *
+ * @param prt (return parameter) Pointer to start of list of Values
+ * @param len Length of array of Value
+ */
+void allocValueArr(Value** ptr, size_t len) {
+    cudaError_t err = cudaMallocManaged(&ptr, len * sizeof(Value*));
+    if (err != cudaSuccess) {
+        fprintf(stderr, "cudaMallocManaged failed while allocating array of Values: %s\n", cudaGetErrorString(err));
+        // Handle the error appropriately
+        exit(1);
+    }
+    // Prefetch memory to correct devices (e.g. CPU or GPU)
+    cudaMemPrefetchAsync(ptr, len * sizeof(Value*), MAIN_DEVICE);
+
+}
+
+/**
  * Function to calculate gradient of Value object that is a sum
  * 
  * Computes gradient with respect to the operands
  *
  * @param v Pointer to the Value object resulting from addition
  */
-BACK_FUNC_TYPE void add_backwards(Value* v) {
+__device__ void add_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad += v->grad;
 }
@@ -64,7 +100,7 @@ BACK_FUNC_TYPE void add_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = 1 * v->grad
  * And for b is: dv/db = -1 * v->grad
  */
-BACK_FUNC_TYPE void sub_backwards(Value* v) {
+__device__ void sub_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad -= v->grad;
 }
@@ -83,7 +119,7 @@ BACK_FUNC_TYPE void sub_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = b * v->grad
  * And for b is: dv/db = a * v->grad
  */
-BACK_FUNC_TYPE void mul_backward(Value* v) {
+__device__ void mul_backward(Value* v) {
     // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
     // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
     v->children[0]->grad += v->children[1]->val * v->grad;
@@ -104,7 +140,7 @@ BACK_FUNC_TYPE void mul_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
  * And for b is: dv/db = (-a/(b^2)) * v->grad
  */
-BACK_FUNC_TYPE void div_backward(Value* v) {
+__device__ void div_backward(Value* v) {
     v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
     v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
@@ -123,7 +159,7 @@ BACK_FUNC_TYPE void div_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
  * And for b is: dv/db = (v * log(a)) * v->grad
  */
-BACK_FUNC_TYPE void power_backward(Value* v) {
+__device__ void power_backward(Value* v) {
     v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
     if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
         v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;

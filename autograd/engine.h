@@ -10,14 +10,9 @@
 #include <stdlib.h>
 
 #ifdef CUDA
-int gpu_device_id = 0;
-// Get the device ID of the GPU
-cudaGetDevice(&gpu_device_id);
-#define MAIN_DEVICE gpu_device_id
-#define BACK_FUNC_TYPE __device__
+#define MAIN_DEVICE 0
 #else
 #define MAIN_DEVICE cudaCpuDeviceId
-#define BACK_FUNC_TYPE __host__
 #endif
 
 #define INITIAL_SIZE 10
@@ -52,6 +47,16 @@ Value* init_value(float x);
  * This function takes an array of floats and initializes an array of Value objects
  */
 Value** init_values(float* arr, size_t len);
+
+/**
+ * This helper function allocates new memory for a specified amout of Values.
+ */
+void allocValue(Value* v, size_t num);
+
+/**
+ * This helper function allocates new memory for an array of Values.
+ */
+void allocValueArr(Value** ptr, size_t len);
 
 /**
  * This function takes two values and returns a new Value object with the sum of the two inputs
@@ -103,7 +108,6 @@ void div_backward(Value* v);
  * Computes the gradient of the power operation with respect to its operands.
  */
 void power_backward(Value* v);
-
 
 /**
  * This function builds a topological order of the computation graph, starting from the given Value object.
