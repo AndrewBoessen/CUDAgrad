@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "engine.h"
+#include "gd.cuh"
 
 /**
  * This function allocates memory for a Value object and initializes its attributes.
@@ -156,137 +157,22 @@ Value* power(Value* a, Value* b) {
 }
 
 /**
- * Function to calculate gradient of Value object that is a sum
- * 
- * Computes gradient with respect to the operands
- *
- * @param v Pointer to the Value object resulting from addition
- */
-void add_backwards(Value* v) {
-    v->children[0]->grad += v->grad;
-    v->children[1]->grad += v->grad;
-}
-
-/**
- * Function to calculate gradient of Value object that is a difference
- *
- * Computes the gradient with respect to the operands
- *
- * @param v Pointer to Value object resulting from subtraction
- *
- * @note
- * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
- * The local derivative for the subtraction is:
- *     dv/da (locally) = 1
- *     dv/db (locally) = -1
- * The external gradient (from parent nodes) is stored in v->grad.
- * Thus, the final gradient for a is: dv/da = 1 * v->grad
- * And for b is: dv/db = -1 * v->grad
- */
-void sub_backwards(Value* v) {
-    v->children[0]->grad += v->grad;
-    v->children[1]->grad -= v->grad;
-}
-
-/**
- * Computes the gradient of the multiplication operation with respect to its operands.
- *
- * @param v Pointer to the Value object resulting from the multiplication.
- *
- * @note
- * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
- * The local derivative for the multiplication is:
- *     dv/da (locally) = b
- *     dv/db (locally) = a
- * The external gradient (from parent nodes) is stored in v->grad.
- * Thus, the final gradient for a is: dv/da = b * v->grad
- * And for b is: dv/db = a * v->grad
- */
-void mul_backward(Value* v) {
-    // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
-    // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
-    v->children[0]->grad += v->children[1]->val * v->grad;
-    v->children[1]->grad += v->children[0]->val * v->grad;
-}
-
-/**
- * Computes the gradient of the division operation with respect to its operands.
- *
- * @param v Pointer to the Value object resulting from the division.
- *
- * @note
- * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
- * The local derivative for the division is:
- *     dv/da (locally) = 1/b
- *     dv/db (locally) = -a/(b^2)
- * The external gradient (from parent nodes) is stored in v->grad.
- * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
- * And for b is: dv/db = (-a/(b^2)) * v->grad
- */
-void div_backward(Value* v) {
-    v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
-    v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
-}
-
-/**
- * Computes the gradient of the power operation with respect to its operands.
- *
- * @param v Pointer to the Value object resulting from the power operation.
- *
- * @note
- * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
- * The local derivative for the power operation is:
- *     dv/da (locally) = b * a^(b-1)
- *     dv/db (locally) = a^b * log(a)
- * The external gradient (from parent nodes) is stored in v->grad.
- * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
- * And for b is: dv/db = (v * log(a)) * v->grad
- */
-void power_backward(Value* v) {
-    v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
-    if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
-        v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;
-    }
-}
-
-/**
- * This function doubles the capacity of the topo array, which stores the
- * topological order of the computation graph. It does this by allocating a new
+ * This helper function doubles the capacity of array. It does this by allocating a new
  * array with double the capacity, copying the existing data to the new array,
  * and updating the topo pointer to point to the new array.
  *
- * @param topo Pointer to the pointer that holds the topo array.
- * @param topo_size Pointer to the variable that holds the current size of the topo array.
- * @param topo_capacity Pointer to the variable that holds the current capacity of the topo array.
+ * @param arr Pointer to the pointer that holds the array.
+ * @param arr_size Pointer to the variable that holds the current size of the array.
+ * @param arr_capacity Pointer to the variable that holds the current capacity of the array.
  */
-void resize_topo_array(Value*** topo, int* topo_size, int* topo_capacity) {
-    *topo_capacity *= 2;
-    Value** new_topo = realloc(*topo, *topo_capacity * sizeof(Value*));
-    if (new_topo == NULL) {
+void resize_array(Value*** arr, int* arr_size, int* arr_capacity) {
+    *arr_capacity *= 2;
+    Value** new_arr = realloc(*arr, *arr_capacity * sizeof(Value*));
+    if (new_arr == NULL) {
         printf("Memory allocation failed.\n");
         exit(1);
     }
-    *topo = new_topo;
-}
-
-/**
- * This function doubles the capacity of the visited array, which keeps track of
- * visited Value objects during the topological sort. It does this by allocating a new
- * array with double the capacity, copying the existing data to the new array,
- * and updating the visited pointer to point to the new array.
- *
- * @param visited Pointer to the pointer that holds the visited array.
- * @param visited_size Pointer to the variable that holds the current size of the visited array.
- * @param visited_capacity Pointer to the variable that holds the current capacity of the visited array.
- */
-void resize_visited_array(Value*** visited, int* visited_size, int* visited_capacity) {
-    *visited_capacity *= 2;
-    Value** new_visited = realloc(*visited, *visited_capacity * sizeof(Value*));
-    if (new_visited == NULL) {
-        printf("Memory allocation failed.\n");
-        exit(1);
-    }
-    *visited = new_visited;
+    *arr = new_arr;
 }
 
 /**
@@ -304,7 +190,7 @@ void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Val
     }
 
     if (*visited_size == *visited_capacity) {
-        resize_visited_array(visited, visited_size, visited_capacity);
+        resize_array(visited, visited_size, visited_capacity);
     }
     (*visited)[*visited_size] = v;
     (*visited_size)++;
@@ -314,39 +200,10 @@ void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Val
     }
 
     if (*topo_size == *topo_capacity) {
-        resize_topo_array(topo, topo_size, topo_capacity);
+        resize_array(topo, topo_size, topo_capacity);
     }
     (*topo)[*topo_size] = v;
     (*topo_size)++;
-}
-
-/**
- * Function to create a list of nodes in topological order in CUDA memory
- *
- * @param root
- */
-Value* create_topological_list_cuda(Value* root) {
-    int num_nodes = 0;
-    int num_visited = 0;
-    Value** visited = malloc(INITIAL_SIZE * sizeof(Value*));
-    Value** sorted_nodes = malloc(INITIAL_SIZE * sizeof(Value*));
-    int topo_capacity = INITIAL_SIZE;
-    int visited_capacity = INITIAL_SIZE;
-
-    build_topo(root, &sorted_nodes, &num_nodes, &topo_capacity, &visited, &num_visited, &visited_capacity);
-
-    // Allocate memory on the GPU
-    Value* cuda_nodes;
-    cudaMalloc((void**)&cuda_nodes, num_nodes * sizeof(Value));
-
-    // Copy data from CPU to GPU
-    cudaMemcpy(cuda_nodes, sorted_nodes, num_nodes * sizeof(Value), cudaMemcpyHostToDevice);
-
-    // Free CPU memory
-    free(sorted_nodes);
-    free(visited);
-
-    return cuda_nodes;
 }
 
 

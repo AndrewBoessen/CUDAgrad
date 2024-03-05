@@ -7,8 +7,6 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
-#include <cuda_runtime.h>
-
 #include <stdlib.h>
 
 #define INITIAL_SIZE 10
@@ -71,49 +69,9 @@ Value* divide(Value* a, Value* b);
 Value* power(Value* a, Value* b);
 
 /**
- * Function to calculate gradient of Value object that is a sum
- */
-__device__ void add_backwards(Value* v);
-
-/**
- * Function to calculate gradient of Value object that is a difference
- */
-__device__ void sub_backwards(Value* v);
-
-/**
- * Computes the gradient of the multiplication operation with respect to its operands.
- */
-__device__ void mul_backward(Value* v);
-
-/**
- * Computes the gradient of the division operation with respect to its operands.
- */
-__device__ void div_backward(Value* v);
-
-/**
- * Computes the gradient of the power operation with respect to its operands.
- */
-void power_backward(Value* v);
-
-/**
- * Resizes the topo array by doubling its capacity.
- */
-void resize_topo_array(Value*** topo, int* topo_size, int* topo_capacity);
-
-/**
- *  Resizes the visited array by doubling its capacity.
- */
-void resize_visited_array(Value*** visited, int* visited_size, int* visited_capacity);
-
-/**
  * This function builds a topological order of the computation graph, starting from the given Value object.
  */
 void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity);
- 
-/**
- * Function to create a list of nodes in topological order in CUDA memory
- */
-Value* create_topological_list_cuda(Value* root);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
