@@ -7,6 +7,7 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
+#include <cuda_runtime.h>
 #include <stdlib.h>
 
 #ifdef CUDA

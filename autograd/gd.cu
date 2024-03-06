@@ -173,9 +173,7 @@ __host__ __device__  void power_backward(Value* v) {
  *
  * @param v the root node of the expression 
  */
-__global__ backward_kernel(Value* v) {
-    v->grad = 1.0;
-
+__global__ void backward_kernel(Value** topo, int topo_size) {
     for (int i = topo_size - 1; i >= 0; --i) {
         if (topo[i]->backward) {
             topo[i]->backward(topo[i]);
@@ -211,8 +209,10 @@ void backward(Value* root) {
     }
 
     #else
+    // Set root grad to 1
+    root->grad = 1.0;
     // Run backprop on GPU
-    backward_kernel<<1,1>>(root);
+    backward_kernel<<<1,1>>>(topo, topo_size);
     #endif
 }
 }
