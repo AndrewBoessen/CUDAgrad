@@ -213,6 +213,8 @@ void backward(Value* root) {
     root->grad = 1.0;
     // Run backprop on GPU
     backward_kernel<<<1,1>>>(topo, topo_size);
+    // Synchronize memory between device and host
+    cudaDeviceSynchronize();
     #endif
 }
 }
