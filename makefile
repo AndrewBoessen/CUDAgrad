@@ -6,7 +6,7 @@ ENG = engine
 all: $(ENG)_cpu $(ENG)_gpu
 
 $(ENG)_cpu : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
-	$(CC) $(FLAGS) $^ -o $@.out
+	$(CC) $(FALGS) $^ -o $@.out
 
 $(ENG)_gpu : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
 	$(CC) $(FLAGS) $^ -D CUDA -o $@.out

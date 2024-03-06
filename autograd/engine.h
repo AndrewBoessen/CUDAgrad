@@ -11,8 +11,10 @@
 
 #ifdef CUDA
 #define MAIN_DEVICE 0
+#define BACK_FUNC_TYPE __device__
 #else
 #define MAIN_DEVICE cudaCpuDeviceId
+#define BACK_FUNC_TYPE __host__
 #endif
 
 #define INITIAL_SIZE 10
