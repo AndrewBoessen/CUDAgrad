@@ -8,11 +8,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-extern "C" {
 #include "engine.h"
-}
 
-extern "C" {
 /**
  * This function allocates memory for a Value object and initializes its attributes.
  *
@@ -216,5 +213,4 @@ void print_children(Value *v) {
 void print_expression(Value* v) {
     print_children(v);
     printf("= %.2f\n", v->val);
-}
 }
