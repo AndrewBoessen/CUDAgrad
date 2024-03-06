@@ -164,6 +164,43 @@ Value* power(Value* a, Value* b) {
 }
 
 /**
+ * @brief Helper function for backward propagation using topological sort.
+ *
+ * This function builds a topological order of the computation graph, starting from the given Value object.
+ *
+ * @param v The starting Value object for the topological sort.
+ * @param topo A pointer to an array where the topological order will be stored.
+ * @param topo_size Pointer to the size of the topo array.
+ * @param visited Pointer to an array that keeps track of visited Value objects.
+ * @param visited_size Pointer to the size of the visited array.
+ */
+void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
+    for (int i = 0; i < *visited_size; ++i) {
+        if (visited[i] == v) return;
+    }
+
+    visited[*visited_size] = v;
+    (*visited_size)++;
+    // printf("%i\n", v->n_children);
+
+    for (int i = 0; i < v->n_children; ++i) {
+        // printf("child of %f\n", v->val);
+        for (int i = 0; i < v->n_children; ++i) {
+            // print_value(v->children[i]);
+        }
+        // printf("\n\n");
+        build_topo(v->children[i], topo, topo_size, visited, visited_size);
+    }
+
+    // printf("topo size = %i, node.val = %.2f\n", *topo_size, v->val);
+    
+
+    topo[*topo_size] = v;
+    (*topo_size)++;
+
+}
+
+/**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
  *
  * @param v Pointer to the Value object to be printed.

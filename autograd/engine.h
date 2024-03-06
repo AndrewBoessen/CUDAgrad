@@ -114,7 +114,12 @@ void power_backward(Value* v);
 /**
  * This function builds a topological order of the computation graph, starting from the given Value object.
  */
-void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity);
+void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size);
+
+/**
+ * This function traverses the computation graph in topological order to compute gradients for each Value object.
+ */
+void backward(Value* root) ;
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.

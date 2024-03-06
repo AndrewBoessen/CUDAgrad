@@ -167,52 +167,28 @@ BACK_FUNC_TYPE void power_backward(Value* v) {
 }
 
 /**
- * This helper function doubles the capacity of array. It does this by allocating a new
- * array with double the capacity, copying the existing data to the new array,
- * and updating the topo pointer to point to the new array.
+ * @brief Compute the backward pass to calculate gradients.
  *
- * @param arr Pointer to the pointer that holds the array.
- * @param arr_size Pointer to the variable that holds the current size of the array.
- * @param arr_capacity Pointer to the variable that holds the current capacity of the array.
- */
-void resize_array(Value*** arr, int* arr_size, int* arr_capacity) {
-    *arr_capacity *= 2;
-    Value** new_arr = (Value**)realloc(*arr, *arr_capacity * sizeof(Value*));
-    if (new_arr == NULL) {
-        printf("Memory allocation failed.\n");
-        exit(1);
-    }
-    *arr = new_arr;
-}
-
-/**
- * Helper function to build a topological order of the computation graph, starting from the given Value object.
+ * This function traverses the computation graph in topological order to compute gradients for each Value object.
  *
- * @param v The starting Value object for the topological sort.
- * @param topo A pointer to an array where the topological order will be stored.
- * @param topo_size Pointer to the size of the topo array.
- * @param visited Pointer to an array that keeps track of visited Value objects.
- * @param visited_size Pointer to the size of the visited array.
+ * @param v The starting Value object for the backward pass.
  */
-void build_topo(Value* v, Value*** topo, int* topo_size, int* topo_capacity, Value*** visited, int* visited_size, int* visited_capacity) {
-    for (int i = 0; i < *visited_size; ++i) {
-        if ((*visited)[i] == v) return;
-    }
+void backward(Value* root) {
+    Value** topo;
+    allocValueArr(&topo, 1000);  // Assuming a maximum of 100 nodes in the computation graph for simplicity
+    int topo_size = 0;
+    Value** visited;
+    allocValueArr(&visited, 1000);
+    int visited_size = 0;
 
-    if (*visited_size == *visited_capacity) {
-        resize_array(visited, visited_size, visited_capacity);
-    }
-    (*visited)[*visited_size] = v;
-    (*visited_size)++;
+    build_topo(root, topo, &topo_size, visited, &visited_size);
 
-    for (int i = 0; i < v->n_children; ++i) {
-        build_topo(v->children[i], topo, topo_size, topo_capacity, visited, visited_size, visited_capacity);
-    }
+    root->grad = 1.0;
 
-    if (*topo_size == *topo_capacity) {
-        resize_array(topo, topo_size, topo_capacity);
+    for (int i = topo_size - 1; i >= 0; --i) {
+        if (topo[i]->backward) {
+            topo[i]->backward(topo[i]);
+        }
     }
-    (*topo)[*topo_size] = v;
-    (*topo_size)++;
 }
 }
