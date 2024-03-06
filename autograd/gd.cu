@@ -212,7 +212,7 @@ void backward(Value* root) {
 
     #else
     // Run backprop on GPU
-    <<1,1>>backward_kernel(root);
+    backward_kernel<<1,1>>(root);
     #endif
 }
 }
