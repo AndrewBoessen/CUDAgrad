@@ -18,7 +18,7 @@
  */
 Value* init_value(float x) {
     Value* v;
-    allocValue(v, 1);
+    allocValue(&v, 1);
     v->val = x;
     v->grad = 0;
     v->children = NULL;
@@ -36,7 +36,7 @@ Value* init_value(float x) {
  Value** init_values(float* arr, size_t len) {
     // Allocate memory for Values
     Value** values;
-    allocValueArr(values, len);
+    allocValueArr(&values, len);
 
     if (values == NULL) {
         perror("Memory allocation for values failed");
@@ -59,11 +59,11 @@ Value* init_value(float x) {
  */
 Value* add(Value* a, Value* b) {
    Value* out;
-   allocValue(out, 1);
+   allocValue(&out, 1);
    out->val = a->val + b->val;
    out->grad = 0;
    // Allocate memory for children
-   allocValueArr(out->children, 2);
+   allocValueArr(&(out->children), 2);
    // Set children to pointers of a and b
    out->children[0] = a;
    out->children[1] = b;
@@ -81,11 +81,11 @@ Value* add(Value* a, Value* b) {
  */
 Value* sub(Value* a, Value* b) {
     Value* out;
-    allocValue(out, 1);
+    allocValue(&out, 1);
     out->val = a->val - b->val;
     out->grad = 0;
     // Allocate memory for children
-    allocValueArr(out->children, 2);
+    allocValueArr(&(out->children), 2);
     // Set children
     out->children[0] = a;
     out->children[1] = b;
@@ -103,11 +103,11 @@ Value* sub(Value* a, Value* b) {
  */
 Value* mul(Value* a, Value* b) {
     Value* out;
-    allocValue(out, 1);
+    allocValue(&out, 1);
     out->val = a->val * b->val;
     out->grad = 0;
     // Allocate memory for children
-    allocValueArr(out->children, 2);
+    allocValueArr(&(out->children), 2);
     // Set children
     out->children[0] = a;
     out->children[1] = b;
@@ -130,11 +130,11 @@ Value* divide(Value* a, Value* b) {
     }
 
     Value* out;
-    allocValue(out, 1);
+    allocValue(&out, 1);
     out->val = a->val / b->val;
     out->grad = 0;
     // allocate children array
-    allocValueArr(out->children, 2);
+    allocValueArr(&(out->children), 2);
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
@@ -152,10 +152,10 @@ Value* divide(Value* a, Value* b) {
  */
 Value* power(Value* a, Value* b) {
     Value* out;
-    allocValue(out, 1);
+    allocValue(&out, 1);
     out->val = pow(a->val, b->val);
     out->grad = 0;
-    allocValueArr(out->children, 2);
+    allocValueArr(&(out->children), 2);
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
