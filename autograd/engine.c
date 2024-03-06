@@ -175,13 +175,14 @@ Value* power(Value* a, Value* b) {
  * @param visited_size Pointer to the size of the visited array.
  */
 void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
+    //Go to end of the visited array
     for (int i = 0; i < *visited_size; ++i) {
         if (visited[i] == v) return;
     }
 
+    // Add curr v to end of visited array and increment size
     visited[*visited_size] = v;
     (*visited_size)++;
-    // printf("%i\n", v->n_children);
 
     for (int i = 0; i < v->n_children; ++i) {
         // printf("child of %f\n", v->val);
@@ -192,9 +193,7 @@ void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* vi
         build_topo(v->children[i], topo, topo_size, visited, visited_size);
     }
 
-    // printf("topo size = %i, node.val = %.2f\n", *topo_size, v->val);
-    
-
+    // Update topo with new node and increment size
     topo[*topo_size] = v;
     (*topo_size)++;
 
