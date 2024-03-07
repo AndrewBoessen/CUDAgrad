@@ -19,6 +19,7 @@ int main(int argc, char** argv) {
     Value* z = sub(sum, t);
 
     backward(z,1);
+    
     print_expression(z);
   
     print_value(z);

@@ -240,7 +240,7 @@ __global__ void compute_gradients(Value* output) {
  */
 void backward(Value* output_values, int num_outputs) {
     // Launch the kernel with one thread per output value
-    compute_gradients<<<1,1>>>(output_values);
+    compute_gradients<<<1,num_outputs>>>(output_values);
 
     // Synchronize to ensure all gradients are computed
     cudaDeviceSynchronize();
