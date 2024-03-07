@@ -201,7 +201,7 @@ __global__ void compute_gradients(Value* output) {
  *
  * @param output_values The starting Value object for the backward pass. (i.e output nodes or leafs in the expression)
  */
-void backward_pass(Value* output_values, int num_outputs) {
+void backward(Value* output_values, int num_outputs) {
     // Launch the kernel with one thread per output value
     compute_gradients<<<(num_outputs + 255) / 256, 256>>>(output_values);
 
