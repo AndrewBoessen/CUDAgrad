@@ -171,21 +171,26 @@ __device__   void power_backward(Value* v) {
  *
  * This function is a kernel that takes a root node of an expression and calculates the gradients for the expression
  *
- * @param values the root node of the expression 
+ * @param output the root node of the expression
  */
-__global__ void backward_kernel(Value* values, int num_values) {
-    int idx = blockDim.x * blockIdx.x + threadIdx.x;
-    if (idx < num_values) {
-        Value* value = &values[idx];
-        if (value->backward) {
-            // Call the backward function to compute the gradient
-            value->backward(value);
+__global__ void compute_gradients(Value* output) {
+    int idx = threadIdx.x + blockDim.x * blockIdx.x;
+    Value* v = &output[idx];
 
-            // Propagate the gradient to the children
-            for (int i = 0; i < value->n_children; ++i) {
-                atomicAdd(&value->children[i]->grad, value->grad);
-            }
+    // Initialize the gradient of the output value to 1
+    if (idx == 0) {
+        v->grad = 1.0f;
+    }
+
+    // Traverse the computation graph in reverse order
+    while (v->n_children > 0) {
+        v->backward(v);
+        Value* child = v->children[0];
+        for (int i = 1; i < v->n_children; i++) {
+            child->backward(child);
+            child = v->children[i];
         }
+        v = child;
     }
 }
 
@@ -194,17 +199,11 @@ __global__ void backward_kernel(Value* values, int num_values) {
  *
  * This function traverses the computation graph in topological order to compute gradients for each Value object.
  *
- * @param outputs The starting Value object for the backward pass. (i.e output nodes or leafs in the expression)
+ * @param output_values The starting Value object for the backward pass. (i.e output nodes or leafs in the expression)
  */
-void backward_pass(Value* outputs, int num_outputs) {
-    // Initialize the gradients of the output values to 1.0
-    for (int i = 0; i < num_outputs; ++i) {
-        outputs[i].grad = 1.0f;
-    }
-
-    // Launch the CUDA kernel to compute the gradients
-    int num_values = 4;/* total number of values in the graph */
-    backward_kernel<<<(num_values + 255) / 256, 256>>>(outputs, num_values);
+void backward_pass(Value* output_values, int num_outputs) {
+    // Launch the kernel with one thread per output value
+    compute_gradients<<<(num_outputs + 255) / 256, 256>>>(output_values);
 
     // Synchronize to ensure all gradients are computed
     cudaDeviceSynchronize();
