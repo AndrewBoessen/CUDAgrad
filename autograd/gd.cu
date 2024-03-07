@@ -202,5 +202,6 @@ void backward(Value* root) {
     root->grad=1.0;
 
     backward_kernel<<<1,1>>>(topo, topo_size);
+    cudaDeviceSynchronize();
 }
 }

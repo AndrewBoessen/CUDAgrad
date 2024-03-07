@@ -18,10 +18,12 @@ int main(int argc, char** argv) {
     // Z = (X + Y) - T
     Value* z = sub(sum, t);
 
-    print_expression(z);
     backward(z);
+
     print_value(z);
     print_value(t);
     
+    print_expression(z);
+
     return EXIT_SUCCESS;
 }
