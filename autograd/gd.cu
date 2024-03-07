@@ -204,8 +204,9 @@ __global__ void compute_gradients(Value* output) {
                 break;
         }
         
-        Value* child = v->children[0];
+
         for (int i = 1; i < v->n_children; i++) {
+            Value* child = v->children[i];
             switch(child->op) {
                 case ADD:
                     add_backwards(child);
@@ -227,7 +228,7 @@ __global__ void compute_gradients(Value* output) {
             }
             child = v->children[i];
         }
-        v = child;
+        v = v->children[0]; // Move to the first child for the next iteration
     }
 }
 
