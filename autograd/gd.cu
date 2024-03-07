@@ -171,12 +171,20 @@ __device__   void power_backward(Value* v) {
  *
  * This function is a kernel that takes a root node of an expression and calculates the gradients for the expression
  *
- * @param v the root node of the expression 
+ * @param values the root node of the expression 
  */
-__global__ void backward_kernel(Value** topo, int topo_size) {
-    for (int i = topo_size - 1; i >= 0; --i) {
-        if (topo[i]->backward) {
-            topo[i]->backward(topo[i]);
+__global__ void backward_kernel(Value* values, int num_values) {
+    int idx = blockDim.x * blockIdx.x + threadIdx.x;
+    if (idx < num_values) {
+        Value* value = &values[idx];
+        if (value->backward) {
+            // Call the backward function to compute the gradient
+            value->backward(value);
+
+            // Propagate the gradient to the children
+            for (int i = 0; i < value->n_children; ++i) {
+                atomicAdd(&value->children[i]->grad, value->grad);
+            }
         }
     }
 }
@@ -186,22 +194,19 @@ __global__ void backward_kernel(Value** topo, int topo_size) {
  *
  * This function traverses the computation graph in topological order to compute gradients for each Value object.
  *
- * @param root The starting Value object for the backward pass.
+ * @param outputs The starting Value object for the backward pass. (i.e output nodes or leafs in the expression)
  */
-void backward(Value* root) {
-    Value** topo;
-    allocValueArr(&topo, 1000);  // Assuming a maximum of 1000 nodes in the computation graph for simplicity
-    int topo_size = 0;
-    Value** visited;
-    allocValueArr(&visited, 1000);
-    int visited_size = 0;
+void backward_pass(Value* outputs, int num_outputs) {
+    // Initialize the gradients of the output values to 1.0
+    for (int i = 0; i < num_outputs; ++i) {
+        outputs[i].grad = 1.0f;
+    }
 
-    build_topo(root, topo, &topo_size, visited, &visited_size);
+    // Launch the CUDA kernel to compute the gradients
+    int num_values = 4;/* total number of values in the graph */
+    backward_kernel<<<(num_values + 255) / 256, 256>>>(outputs, num_values);
 
-    //Grad at end of expression is one.
-    root->grad=1.0;
-
-    backward_kernel<<<1,1>>>(topo, topo_size);
+    // Synchronize to ensure all gradients are computed
     cudaDeviceSynchronize();
 }
 }
