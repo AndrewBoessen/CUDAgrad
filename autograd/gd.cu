@@ -79,7 +79,7 @@ void allocValueArr(Value*** ptr, size_t len) {
  *
  * @param v Pointer to the Value object resulting from addition
  */
-__device__   void add_backwards(Value* v) {
+__device__ __inline__ void add_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad += v->grad;
 }
@@ -100,7 +100,7 @@ __device__   void add_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = 1 * v->grad
  * And for b is: dv/db = -1 * v->grad
  */
-__device__   void sub_backwards(Value* v) {
+__device__ __inline__ void sub_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad -= v->grad;
 }
@@ -119,7 +119,7 @@ __device__   void sub_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = b * v->grad
  * And for b is: dv/db = a * v->grad
  */
-__device__   void mul_backward(Value* v) {
+__device__ __inline__ void mul_backward(Value* v) {
     // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
     // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
     v->children[0]->grad += v->children[1]->val * v->grad;
@@ -140,7 +140,7 @@ __device__   void mul_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
  * And for b is: dv/db = (-a/(b^2)) * v->grad
  */
-__device__   void div_backward(Value* v) {
+__device__ __inline__ void div_backward(Value* v) {
     v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
     v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
@@ -159,7 +159,7 @@ __device__   void div_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
  * And for b is: dv/db = (v * log(a)) * v->grad
  */
-__device__   void power_backward(Value* v) {
+__device__ __inline__ void power_backward(Value* v) {
     v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
     if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
         v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;
@@ -184,7 +184,16 @@ __global__ void compute_gradients(Value* output) {
 
     // Traverse the computation graph in reverse order
     while (v->n_children > 0) {
-        v->backward(v);
+        if (v->backward == add_backwards) {
+            add_backwards(v);
+        } else if (v->backward == sub_backwards) {
+            sub_backwards(v);
+        } else if (v->backward == mul_backward) {
+            mul_backward(v);
+        } else if (v->backward == div_backward) {
+            div_backward(v);
+        } else {
+        }
         Value* child = v->children[0];
         for (int i = 1; i < v->n_children; i++) {
             child->backward(child);
