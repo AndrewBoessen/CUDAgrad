@@ -4,7 +4,7 @@ ENG = engine
 FLAGS = -g -G -O0
 all: $(ENG)
 
-$(ENG) : ./$(APP)/$(ENG).c ./$(APP)/gd.cu ./$(APP)/main.c
+$(ENG) : ./$(APP)/gd.cu ./$(APP)/$(ENG).c ./$(APP)/main.c
 	$(CC) $(FLAGS) $^ -o $@.out
 
 clean:

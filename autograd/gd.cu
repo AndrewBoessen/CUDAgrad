@@ -184,19 +184,47 @@ __global__ void compute_gradients(Value* output) {
 
     // Traverse the computation graph in reverse order
     while (v->n_children > 0) {
-        if (v->backward == add_backwards) {
-            add_backwards(v);
-        } else if (v->backward == sub_backwards) {
-            sub_backwards(v);
-        } else if (v->backward == mul_backward) {
-            mul_backward(v);
-        } else if (v->backward == div_backward) {
-            div_backward(v);
-        } else {
+        switch(v->op) {
+            case ADD:
+                add_backwards(v);
+                break;
+            case SUB:
+                sub_backwards(v);
+                break;
+            case MUL:
+                mul_backward(v);
+                break;
+            case DIV:
+                div_backward(v);
+                break;
+            case POW:
+                power_backward(v);
+                break;
+            default:
+                break;
         }
+        
         Value* child = v->children[0];
         for (int i = 1; i < v->n_children; i++) {
-            child->backward(child);
+            switch(child->op) {
+                case ADD:
+                    add_backwards(child);
+                    break;
+                case SUB:
+                    sub_backwards(child);
+                    break;
+                case MUL:
+                    mul_backward(child);
+                    break;
+                case DIV:
+                    div_backward(child);
+                    break;
+                case POW:
+                    power_backward(child);
+                    break;
+                default:
+                    break;
+            }
             child = v->children[i];
         }
         v = child;

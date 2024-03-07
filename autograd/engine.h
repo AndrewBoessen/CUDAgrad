@@ -7,10 +7,14 @@
 #ifndef AUTODIFF_H
 #define AUTODIFF_H
 
-#include <cuda_runtime.h>
 #include <stdlib.h>
 
 #define INITIAL_SIZE 10
+
+/**
+ * Enum for value operators
+ */
+typedef enum Operator {NUL, ADD, SUB, MUL, DIV, POW} Operator;
 
 /**
  * @struct Value
@@ -23,14 +27,14 @@
  * @param grad Gradient of the value, computed during the backward pass.
  * @param children Array of pointers to child nodes that this value directly depends on in the computation graph.
  * @param n_children Number of child nodes in the `children` array.
- * @param backward Function pointer to the backward function responsible for computing the gradient for this node.
+ * @param operator operator that dervies the value
  */
 typedef struct Value {
     float val;  // actual value
     float grad;  // gradient
     struct Value** children;  // children this value depends on
     int n_children;  // number of children
-    void (*backward)(struct Value*);  // backward function to compute gradients
+    Operator op;  // operator enum
 } Value;
 
 /**
@@ -78,31 +82,6 @@ Value* divide(Value* a, Value* b);
  * The resulting Value object will have a backward function assigned for gradient computation.
  */
 Value* power(Value* a, Value* b);
-
-/**
- * Function to calculate gradient of Value object that is a sum
- */
-__device__ void add_backwards(Value* v);
-
-/**
- * Function to calculate gradient of Value object that is a difference
- */
-__device__ void sub_backwards(Value* v);
-
-/**
- * Computes the gradient of the multiplication operation with respect to its operands.
- */
-__device__ void mul_backward(Value* v);
-
-/**
- * Computes the gradient of the division operation with respect to its operands.
- */
-__device__ void div_backward(Value* v);
-
-/**
- * Computes the gradient of the power operation with respect to its operands.
- */
-__device__ void power_backward(Value* v);
 
 /**
  * This function builds a topological order of the computation graph, starting from the given Value object.

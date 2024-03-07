@@ -23,7 +23,7 @@ Value* init_value(float x) {
     v->grad = 0;
     v->children = NULL;
     v->n_children = 0;
-    v->backward = NULL;
+    v->op = NUL;
     return v;
 }
 
@@ -68,7 +68,7 @@ Value* add(Value* a, Value* b) {
    out->children[0] = a;
    out->children[1] = b;
    out->n_children = 2;
-   out->backward = add_backwards;
+   out->op = NUL;
    return out;
 }
 
@@ -90,7 +90,7 @@ Value* sub(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = sub_backwards;
+    out->op = SUB;
     return out;
 }
 
@@ -112,7 +112,7 @@ Value* mul(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = mul_backward;
+    out->op = MUL;
     return out;
 }
 
@@ -138,7 +138,7 @@ Value* divide(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = div_backward;
+    out->op = DIV;
     return out;
 }
 
@@ -159,7 +159,7 @@ Value* power(Value* a, Value* b) {
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
-    out->backward = power_backward;
+    out->op = POW;
     return out;
 }
 
@@ -224,16 +224,25 @@ void print_children(Value *v) {
     }
 
     char operand;
-    if (v->backward == add_backwards) {
-        operand = '+';
-    } else if (v->backward == sub_backwards) {
-        operand = '-';
-    } else if (v->backward == mul_backward) {
-        operand = '*';
-    } else if (v->backward == div_backward) {
-        operand = '/';
-    } else {
-        operand = ' ';
+    switch(v->op) {
+        case ADD:
+            operand = '+';
+            break;
+        case SUB:
+            operand = '-';
+            break;
+        case MUL:
+            operand = '*';
+            break;
+        case DIV:
+            operand = '/';
+            break;
+        case POW:
+            operand = '^';
+            break;
+        default:
+            operand = ' ';
+            break;
     }
 
     if (v->n_children == 0) {
