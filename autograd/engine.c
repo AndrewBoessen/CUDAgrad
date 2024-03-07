@@ -68,7 +68,7 @@ Value* add(Value* a, Value* b) {
    out->children[0] = a;
    out->children[1] = b;
    out->n_children = 2;
-   out->op = NUL;
+   out->op = ADD;
    return out;
 }
 
