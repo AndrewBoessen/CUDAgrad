@@ -10,12 +10,6 @@
 #include <cuda_runtime.h>
 #include <stdlib.h>
 
-#ifdef CUDA
-#define MAIN_DEVICE 0
-#else
-#define MAIN_DEVICE cudaCpuDeviceId
-#endif
-
 #define INITIAL_SIZE 10
 
 /**
@@ -88,27 +82,27 @@ Value* power(Value* a, Value* b);
 /**
  * Function to calculate gradient of Value object that is a sum
  */
-__host__ __device__ void add_backwards(Value* v);
+__device__ void add_backwards(Value* v);
 
 /**
  * Function to calculate gradient of Value object that is a difference
  */
-__host__ __device__ void sub_backwards(Value* v);
+__device__ void sub_backwards(Value* v);
 
 /**
  * Computes the gradient of the multiplication operation with respect to its operands.
  */
-__host__ __device__ void mul_backward(Value* v);
+__device__ void mul_backward(Value* v);
 
 /**
  * Computes the gradient of the division operation with respect to its operands.
  */
-__host__ __device__ void div_backward(Value* v);
+__device__ void div_backward(Value* v);
 
 /**
  * Computes the gradient of the power operation with respect to its operands.
  */
-__host__ __device__ void power_backward(Value* v);
+__device__ void power_backward(Value* v);
 
 /**
  * This function builds a topological order of the computation graph, starting from the given Value object.
