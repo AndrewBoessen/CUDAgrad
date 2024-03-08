@@ -7,25 +7,19 @@ int main(int argc, char** argv) {
     // Print GPU Info
     printCudaInfo();
 
-    // Test add and subtract
-    Value* x = init_value(1.0);
-    Value* y = init_value(1.5);
+    Value* x = init_value(-2);
+    Value* y = init_value(5);
+    Value* z = init_value(-4);
 
-    Value* sum = add(x,y);
+    Value* q = add(x,y);
+    Value* f = mul(q,z);
 
-    Value* t = init_value(3.0);
+    backward(f,1);
 
-    // Z = (X + Y) - T
-    Value* z = sub(sum, t);
-
-    backward(z,1);
-    
-    print_expression(z);
-  
-    print_value(z);
-    print_value(t);
+    print_expression(f);
     print_value(x);
     print_value(y);
+    print_value(z);
 
     return EXIT_SUCCESS;
 }
