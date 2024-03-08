@@ -167,6 +167,27 @@ __device__ __inline__ void power_backward(Value* v) {
 }
 
 /**
+ * Computes the gradient of the ReLU operation with respect to its input.
+ *
+ * @param v Pointer to the Value object resulting from the Leaky ReLU activation.
+ *
+ * @note
+ * The final gradient for the operand is its local gradient multiplied by any external gradient flowing from a parent.
+ * The local derivative for the ReLU is:
+ *     dv/da (locally) = 1 if a > 0
+ *     dv/da (locally) = 0
+ * The external gradient (from parent nodes) is stored in v->grad.
+ * Thus, the final gradient for a is: dv/da = (chosen local derivative) * v->grad
+ */
+void leaky_relu_backward(Value* v) {
+    if (v->children[0]->val > 0) {
+        v->children[0]->grad += v->grad;
+    } else {
+        v->children[0]->grad += 0;
+    }
+}
+
+/**
  * @brief Kernel for running backward pass for expression on device
  *
  * This function is a kernel that takes a root node of an expression and calculates the gradients for the expression

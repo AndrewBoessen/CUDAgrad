@@ -162,6 +162,26 @@ Value* power(Value* a, Value* b) {
     out->op = POW;
     return out;
 }
+/**
+ * @brief Forward function for Leaky ReLU activation.
+ *
+ * This function creates a new Value object that represents the Leaky ReLU activation of a given Value object.
+ * The resulting Value object will have a backward function assigned for gradient computation.
+ *
+ * @param a Pointer to the input Value object.
+ * @return A pointer to the new Value object representing the Leaky ReLU activation.
+ */
+Value* relu(Value* a) {
+    Value* out;
+    allocValue(&out, 1);
+    out->val = (a->val < 0) ? 0: a->val;
+    out->grad = 0;
+    allocValueArr(&(out->children), 1);
+    out->children[0] = a;
+    out->n_children = 1;
+    out->op = RELU;
+    return out;
+}
 
 /**
  * @brief Helper function for backward propagation using topological sort.
@@ -239,6 +259,9 @@ void print_children(Value *v) {
             break;
         case POW:
             operand = '^';
+            break;
+        case RELU:
+            operand = 'R';
             break;
         default:
             operand = ' ';

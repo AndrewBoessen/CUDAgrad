@@ -14,7 +14,7 @@
 /**
  * Enum for value operators
  */
-typedef enum Operator {NUL, ADD, SUB, MUL, DIV, POW} Operator;
+typedef enum Operator {NUL, ADD, SUB, MUL, DIV, POW, RELU} Operator;
 
 /**
  * @struct Value
@@ -76,6 +76,11 @@ Value* mul(Value* a, Value* b);
  * This function takes two Value objects and devides them and returns a value with the quotient
  */
 Value* divide(Value* a, Value* b);
+
+/**
+ * ReLU avtivation function for node
+ */
+Value* relu(Value* a);
 
 /**
  * This function creates a new Value object that represents one Value object raised to the power of another.
