@@ -20,6 +20,71 @@ extern "C"{
 __device__ int mutex = 0;
 
 /**
+ * This function takes two values and returns a new Value object with the sum of the two inputs
+ *
+ * @param a forst value to add
+ * @param b Second value to add
+ * @return A pointer to the new Value object representing the sum.
+ */
+__device__ Value* add(Value* a, Value* b) {
+   Value* out;
+   allocValue(&out, 1);
+   out->val = a->val + b->val;
+   out->grad = 0;
+   // Allocate memory for children
+   allocValueArr(&(out->children), 2);
+   // Set children to pointers of a and b
+   out->children[0] = a;
+   out->children[1] = b;
+   out->n_children = 2;
+   out->op = ADD;
+   return out;
+}
+
+/**
+ * This function takes two value objects and multiplies them together and returns new Value with the product
+ *
+ * @param a Value to multiply
+ * @param b Value to multiply by
+ * @return A pointer to the new Value object representing the product.
+ */
+__device__ Value* mul(Value* a, Value* b) {
+    Value* out;
+    allocValue(&out, 1);
+    out->val = a->val * b->val;
+    out->grad = 0;
+    // Allocate memory for children
+    allocValueArr(&(out->children), 2);
+    // Set children
+    out->children[0] = a;
+    out->children[1] = b;
+    out->n_children = 2;
+    out->op = MUL;
+    return out;
+}
+
+/**
+ * @brief Forward function for Leaky ReLU activation.
+ *
+ * This function creates a new Value object that represents the Leaky ReLU activation of a given Value object.
+ * The resulting Value object will have a backward function assigned for gradient computation.
+ *
+ * @param a Pointer to the input Value object.
+ * @return A pointer to the new Value object representing the Leaky ReLU activation.
+ */
+__device__ Value* relu(Value* a) {
+    Value* out;
+    allocValue(&out, 1);
+    out->val = (a->val < 0) ? 0: a->val;
+    out->grad = 0;
+    allocValueArr(&(out->children), 1);
+    out->children[0] = a;
+    out->n_children = 1;
+    out->op = RELU;
+    return out;
+}
+
+/**
  * This helper function allocates new memory for a specified amount of Neurons.
  *
  * @param n (return parameter) The pointer to the start of the Neurons in memory
