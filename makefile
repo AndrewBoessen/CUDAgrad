@@ -4,7 +4,7 @@ NVCC = nvcc
 
 # Compiler flags
 CFLAGS = -Wall -Wextra -std=c99
-NVCCFLAGS = -g -G -arch=sm_35
+NVCCFLAGS = -g -G
 
 # Include directories
 INC_DIRS = -I./autograd/
@@ -24,13 +24,13 @@ EXECUTABLE = nn_demo
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(C_OBJECTS) $(CU_OBJECTS)
-	$(NVCC) $(CU_OBJECTS) $(C_OBJECTS) -o $@
+	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(C_OBJECTS) -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INC_DIRS) -c $< -o $@
 
 %.o: %.cu
-	$(NVCC) $(INC_DIRS) -c $< -o $@
+	$(NVCC) $(NVCCFLAGS) $(INC_DIRS) -c $< -o $@
 
 clean:
 	rm -f $(EXECUTABLE) $(C_OBJECTS) $(CU_OBJECTS)
