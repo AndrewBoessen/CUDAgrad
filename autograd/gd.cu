@@ -50,8 +50,6 @@ void allocValue(Value** v, size_t num) {
         // Handle the error appropriately
         exit(1);
     }
-    // Prefetch memory to correct devices (e.g. CPU or GPU)
-    //cudaMemPrefetchAsync(v, num * sizeof(Value), MAIN_DEVICE);
 }
 
 /**
@@ -67,9 +65,6 @@ void allocValueArr(Value*** ptr, size_t len) {
         // Handle the error appropriately
         exit(1);
     }
-    // Prefetch memory to correct devices (e.g. CPU or GPU)
-    //cudaMemPrefetchAsync(ptr, len * sizeof(Value*), MAIN_DEVICE);
-
 }
 
 /**

@@ -42,12 +42,22 @@ typedef struct MLP {
 
 Neuron* init_neuron(int nin, int lonlin);
 
-Value* neuron_forward(Nueron* neuron, Value** x);
-
 Layer* init_layer(int nin, int nout, int nonlin);
-
-Value** layer_forward(Layer* layer, Value** x);
 
 MLP* init_mlp(int* sizes, int nlayers);
 
 Value** mlp_forward(MLP* mlp, Value** x);
+
+Value* mse_loss(Value** y_pred, Value** y_true, int size);
+
+void update_weights(Value* v, float lr);
+
+void show_params(MLP* mlp);
+
+Value* train(MLP* mlp, Value** x, Value** y_true, float lr);
+
+void free_neuron(Neuron* neuron);
+
+void free_layer(Layer* layer);
+
+void free_mlp(MLP* mlp);
