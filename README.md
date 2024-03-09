@@ -88,6 +88,7 @@ int main() {
     int n_inputs = 2;
     int n_outputs = 2;
 
+    // Define the sizes of the layers
     int sizes[] = {n_inputs, 5, 10, 5, n_outputs};
     int nlayers = sizeof(sizes) / sizeof(int);
 
@@ -101,6 +102,7 @@ int main() {
     in[0] = init_value(1.0);
     in[1] = init_value(1.0);
 
+    // Compute outputs with forward pass
     Value** out = mlp_forward(mlp, in, n_inputs);
 
     print_value(out[0]);
