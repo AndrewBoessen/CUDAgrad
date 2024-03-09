@@ -207,7 +207,6 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** out = init_values(initialSums, curr_layer->nout);
         // Allocate space for children of outputs
         for(int i = 0; i < curr_layer->nout; i++) {
-            out[i]->children = NULL;
             allocValueArr(&(out[i]->children), nin);
             out[i]->n_children = nin;
             out[i]->op = ADD;
