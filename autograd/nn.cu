@@ -17,11 +17,11 @@ extern "C" {
 
 extern "C"{
 __device__ void mul_dev(Value* w, Value* x, Value* v) {
+    v->val = w->val * x->val;
     v->grad = 0;
     v->children[0] = w;
     v->children[1] = x;
     v->n_children = 2;
-     v->val = w->val * x->val;
     v->op = MUL;
 }
 
@@ -139,7 +139,9 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Set paramters of product
     Value* prod = products[prod_idx];
-    mul_dev(n->w[input_idx], x[input_idx], prod);
+    Value* w = n->w[input_idx];
+    Value* x = x[input_idx];
+    mul_dev(w, x, prod);
 
     // Add product to children of neuron output
     out[neuron_idx]->children[input_idx] = prod;
