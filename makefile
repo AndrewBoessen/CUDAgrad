@@ -4,7 +4,7 @@ NVCC = nvcc
 
 # Compiler flags
 CFLAGS = -Wall -Wextra -std=c99
-NVCCFLAGS = -arch=sm_35
+NVCCFLAGS = -g -G -arch=sm_35
 
 # Include directories
 INC_DIRS = -I./autograd/
