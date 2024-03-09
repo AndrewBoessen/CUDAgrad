@@ -16,6 +16,32 @@ extern "C" {
 }
 
 extern "C"{
+__device__ __inline__ void mul_dev(Value* w, Value* x, Value* v) {
+    v->val = w->val * x->val;
+    v->grad = 0;
+    v->children[0] = w;
+    v->children[1] = x;
+    v->n_children = 2;
+    v->op = MUL;
+}
+
+__device__ __inline__ void add_dev(Value* out, Value* b, Value* v) {
+    v->val = out->val + b->val;
+    v->grad = 0;
+    v->children[0] = out;
+    v->children[1] = b;
+    v->n_children = 2;
+    v->op = ADD;
+}
+
+__device__ __inline__ void relu_dev(Value* out, Value* v) {
+    v->val = (out->val < 0) ? 0 : out->val;
+    v->grad = 0;
+    v->children[0] = out;
+    v->n_children = 1;
+    v->op = RELU;
+}
+
 /**
  * This helper function allocates new memory for a specified amount of Neurons.
  *
@@ -112,12 +138,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Set paramters of product
     Value* prod = products[prod_idx];
-    prod->val = n->w[input_idx]->val * x[input_idx]->val;
-    prod->grad = 0;
-    prod->children[0] = n->w[input_idx];
-    prod->children[1] = x[input_idx];
-    prod->n_children = 2;
-    prod->op = MUL;
+    mul_dev(n->w[input_idx], x[input_idx], prod);
 
     // Add product to children of neuron output
     out[neuron_idx]->children[input_idx] = prod;
@@ -131,17 +152,16 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
     // Only run if last thread in block
     if (input_idx == blockDim.x - 1) {
         Value* sum = biases[neuron_idx];
-        sum->val = out[neuron_idx]->val + n->b->val;
-        sum->grad = 0;
-        sum->children[0] = out[neuron_idx];
-        sum->children[1] = n->b;
-        sum->n_children = 2;
-        sum->op = ADD;
+        add_dev(out[neuron_idx], n->b, sum);
         
         out[neuron_idx] = sum;
-        
+
         if (n->nonlin) {
-            out[neuron_idx] = relu(out[neuron_idx]);
+            // Activate with ReLU function if nonlin
+            Value* relu_val = activations[neuron_idx];
+            relu_dev(out[neuron_idx], relu_val);
+
+            out[neuron_idx] = relu_val;
         }
     }
     
@@ -181,12 +201,15 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Layer* curr_layer = mlp->layers[i];
 
         // Allocate empty value arr for outputs
-        Value** out;
-        allocValueArr(&out, curr_layer->nout);
+        float initialSums[curr_layer->nout];
+        memset(initialSums, 0.0, curr_layer->nout * sizeof(float));
+        // Initialize sums to 0.0
+        Value** out = init_values(initialSums, curr_layer->nout);
         // Allocate space for children of outputs
         for(int i = 0; i < curr_layer->nout; i++) {
             allocValueArr(&(out[i]->children), nin);
             out[i]->n_children = nin;
+            out[i]->op = ADD;
         }
 
         // Allocate array for prodcuts of inputs and weights
