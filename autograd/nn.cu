@@ -16,74 +16,6 @@ extern "C" {
 }
 
 extern "C"{
-// Define a global mutex lock
-__device__ int mutex = 0;
-
-/**
- * This function takes two values and returns a new Value object with the sum of the two inputs
- *
- * @param a forst value to add
- * @param b Second value to add
- * @return A pointer to the new Value object representing the sum.
- */
-__device__ Value* add(Value* a, Value* b) {
-   Value* out;
-   allocValue(&out, 1);
-   out->val = a->val + b->val;
-   out->grad = 0;
-   // Allocate memory for children
-   allocValueArr(&(out->children), 2);
-   // Set children to pointers of a and b
-   out->children[0] = a;
-   out->children[1] = b;
-   out->n_children = 2;
-   out->op = ADD;
-   return out;
-}
-
-/**
- * This function takes two value objects and multiplies them together and returns new Value with the product
- *
- * @param a Value to multiply
- * @param b Value to multiply by
- * @return A pointer to the new Value object representing the product.
- */
-__device__ Value* mul(Value* a, Value* b) {
-    Value* out;
-    allocValue(&out, 1);
-    out->val = a->val * b->val;
-    out->grad = 0;
-    // Allocate memory for children
-    allocValueArr(&(out->children), 2);
-    // Set children
-    out->children[0] = a;
-    out->children[1] = b;
-    out->n_children = 2;
-    out->op = MUL;
-    return out;
-}
-
-/**
- * @brief Forward function for Leaky ReLU activation.
- *
- * This function creates a new Value object that represents the Leaky ReLU activation of a given Value object.
- * The resulting Value object will have a backward function assigned for gradient computation.
- *
- * @param a Pointer to the input Value object.
- * @return A pointer to the new Value object representing the Leaky ReLU activation.
- */
-__device__ Value* relu(Value* a) {
-    Value* out;
-    allocValue(&out, 1);
-    out->val = (a->val < 0) ? 0: a->val;
-    out->grad = 0;
-    allocValueArr(&(out->children), 1);
-    out->children[0] = a;
-    out->n_children = 1;
-    out->op = RELU;
-    return out;
-}
-
 /**
  * This helper function allocates new memory for a specified amount of Neurons.
  *
@@ -162,8 +94,11 @@ Layer* init_layer(int nin, int nout, int nonlin) {
  * @param layer Pointer to the layer.
  * @param x Array of input values for the layer.
  * @param out Array of values corresponding to output of layer.
+ * @param products Array of Values for products of inputs and weights.
+ * @param biases Values to store sum of output ands bias
+ * @param activations Values to store outputs activation function
  */
-__global__ void layer_forward(Layer* layer, Value** x, Value** out) {
+__global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** products, Value** biases, Value** activations) {
     // Index of neuron to computer (block)
     int neuron_idx = blockIdx.x;
     // Current neuron in layer
@@ -171,18 +106,23 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
 
     // Index of cuurent input of neuron
     int input_idx = threadIdx.x + 1 % blockDim.x;
-    // Product of input for neuron and weight
-    Value* prod = mul(n->w[input_idx], x[input_idx]);
 
-    // Acquire lock
-    while (atomicCAS(&mutex, 0, 1) != 0);
-    
-    // Update the output value with new product
-    // Atomic update to not interfere with other threads
-    out[neuron_idx] = add(out[neuron_idx], prod);
+    // Index of product within array
+    int prod_idx = input_idx * blockDim.x;
 
-    // Release lock
-    atomicExch(&mutex, 0);
+    // Set paramters of product
+    Value* prod = products[prod_idx];
+    prod->val = n->w[input_idx]->val * x[input_idx]->val;
+    prod->grad = 0;
+    prod->children[0] = n->w[input_idx];
+    prod->children[1] = x[input_idx];
+    prod->n_children = 2;
+    prod->op = MUL;
+
+    // Add product to children of neuron output
+    out[neuron_idx]->children[input_idx] = prod;
+    // Update neuron output value
+    atomicAdd(&(out[neuron_idx]->val), prod->val);
 
     // Wait for all thread to finish computing products
     __syncthreads();
@@ -190,7 +130,16 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
     // Add bias to sum and activate if nonlin
     // Only run if last thread in block
     if (input_idx == blockDim.x - 1) {
-        out[neuron_idx] = add(out[neuron_idx], n->b);
+        Value* sum = biases[neuron_idx];
+        sum->val = out[neuron_idx]->val + n->b->val;
+        sum->grad = 0;
+        sum->children[0] = out[neuron_idx];
+        sum->children[1] = n->b;
+        sum->n_children = 2;
+        sum->op = ADD;
+        
+        out[neuron_idx] = sum;
+        
         if (n->nonlin) {
             out[neuron_idx] = relu(out[neuron_idx]);
         }
@@ -230,10 +179,39 @@ MLP* init_mlp(int* sizes, int nlayers) {
 Value** mlp_forward(MLP* mlp, Value** x, int nin) {
     for (int i = 0; i < mlp->nlayers; i++) {
         Layer* curr_layer = mlp->layers[i];
+
         // Allocate empty value arr for outputs
         Value** out;
         allocValueArr(&out, curr_layer->nout);
-        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(curr_layer, x, out);
+        // Allocate space for children of outputs
+        for(int i = 0; i < curr_layer->nout; i++) {
+            allocValueArr(&(out[i]->children), nin);
+            out[i]->n_children = nin;
+        }
+
+        // Allocate array for prodcuts of inputs and weights
+        Value** products;
+        allocValueArr(&products, nin * curr_layer->nout);
+        // Allocate space for products children
+        for(int i = 0; i < nin * curr_layer->nout; i++) {
+            allocValueArr(&(products[i]->children), 2);
+        }
+
+        // Allocate Values to store sum of output ands bias
+        Value** biases;
+        allocValueArr(&biases, curr_layer->nout);
+        for(int i = 0; i < curr_layer->nout; i++) {
+            allocValueArr(&(biases[i]->children), 2);
+        }
+
+        // Allocate Value to store outputs activation function
+        Value** activations;
+        allocValueArr(&activations, curr_layer->nout);
+        for(int i = 0; i < curr_layer->nout; i++) {
+            allocValueArr(&(activations[i]->children), 1);
+        }
+
+        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(curr_layer, x, out, products, biases, activations);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs

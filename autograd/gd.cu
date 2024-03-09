@@ -75,8 +75,9 @@ void allocValueArr(Value*** ptr, size_t len) {
  * @param v Pointer to the Value object resulting from addition
  */
 __device__ __inline__ void add_backwards(Value* v) {
-    v->children[0]->grad += v->grad;
-    v->children[1]->grad += v->grad;
+    for (int i = 0; i < v->n_children; i++) {
+        v->children[i]->grad += v->grad;
+    }
 }
 
 /**
