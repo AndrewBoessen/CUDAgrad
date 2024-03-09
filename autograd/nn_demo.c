@@ -3,6 +3,7 @@
  */
 
 #include "nn.h"
+#include "engine.h"
 
 int main() {
     int n_inputs = 2;
