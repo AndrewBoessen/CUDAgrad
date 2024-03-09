@@ -207,6 +207,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** out = init_values(initialSums, curr_layer->nout);
         // Allocate space for children of outputs
         for(int i = 0; i < curr_layer->nout; i++) {
+            out[i]->children = NULL;
             allocValueArr(&(out[i]->children), nin);
             out[i]->n_children = nin;
             out[i]->op = ADD;
@@ -217,6 +218,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         allocValueArr(&products, nin * curr_layer->nout);
         // Allocate space for products children
         for(int i = 0; i < nin * curr_layer->nout; i++) {
+            products[i]->children = NULL;
             allocValueArr(&(products[i]->children), 2);
         }
 
@@ -224,6 +226,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** biases;
         allocValueArr(&biases, curr_layer->nout);
         for(int i = 0; i < curr_layer->nout; i++) {
+            biases[i]->children = NULL;
             allocValueArr(&(biases[i]->children), 2);
         }
 
@@ -231,6 +234,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** activations;
         allocValueArr(&activations, curr_layer->nout);
         for(int i = 0; i < curr_layer->nout; i++) {
+            activations[i]->children = NULL;
             allocValueArr(&(activations[i]->children), 1);
         }
 
