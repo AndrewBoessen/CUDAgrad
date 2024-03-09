@@ -95,7 +95,6 @@ Layer* init_layer(int nin, int nout, int nonlin) {
  * @param layer Pointer to the layer.
  * @param x Array of input values for the layer.
  * @param out Array of values corresponding to output of layer.
- * @return Array of output values from all neurons in the layer.
  */
 __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
     // Index of neuron to computer (block)
@@ -104,7 +103,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
     Neuron* n = layer->neurons[neuron_idx];
 
     // Index of cuurent input of neuron
-    int input_idx = threadIdx.x % blockDim.x;
+    int input_idx = threadIdx.x + 1 % blockDim.x;
     // Product of input for neuron and weight
     Value* prod = mul(n->w[input_idx], x[input_idx]);
 
@@ -152,11 +151,22 @@ MLP* init_mlp(int* sizes, int nlayers) {
  *
  * @param mlp Pointer to the MLP.
  * @param x Array of input values for the MLP.
+ * @param nin Number of inputs
  * @return Array of output values from the final layer of the MLP.
  */
-__global__ Value** mlp_forward(MLP* mlp, Value** x) {
+Value** mlp_forward(MLP* mlp, Value** x, int nin) {
     for (int i = 0; i < mlp->nlayers; i++) {
-        x = layer_forward(mlp->layers[i], x);
+        Layer* curr_layer = mlp->layers[i];
+        // Allocate empty value arr for outputs
+        Value** out;
+        allocValueArr(&out, curr_layer->nout);
+        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(&curr_layer, x, out);
+        // Wait for kernel to finish before updating x
+        cudaDeviceSynchronize();
+        // Number of next inputs are number of current outputs
+        nin = curr_layer->nout;
+        // Next layers inputs are current layers outputs
+        x = out;
     }
     return x;
 }
@@ -171,13 +181,13 @@ __global__ Value** mlp_forward(MLP* mlp, Value** x) {
  */
 Value* mse_loss(Value** y_pred, Value** y_true, int size) {
     
-    Value* loss = make_value(0.0);
+    Value* loss = init_value(0.0);
     for (int i = 0; i < size; i++) {
         Value* diff = sub(y_pred[i], y_true[i]);
-        Value* sq = power(diff, make_value(2.0));
+        Value* sq = power(diff, init_value(2.0));
         loss = add(loss, sq);
     }
-    loss = divide(loss, make_value(size));
+    loss = divide(loss, init_value(size));
 
     return loss;
 }
@@ -210,5 +220,45 @@ void show_params(MLP* mlp){
         }
     }
         printf("\n\n");
+}
+
+/**
+ * @brief Free the memory allocated for a neuron.
+ *
+ * @param neuron Pointer to the neuron to be freed.
+ */
+void free_neuron(Neuron* neuron) {
+    for (int i = 0; i < neuron->nin; i++) {
+        free_value(neuron->w[i]);
+    }
+    cudaFree(neuron->w);
+    free_value(neuron->b);
+    cudaFreeree(neuron);
+}
+
+/**
+ * @brief Free the memory allocated for a layer.
+ *
+ * @param layer Pointer to the layer to be freed.
+ */
+void free_layer(Layer* layer) {
+    for (int i = 0; i < layer->nout; i++) {
+        free_neuron(layer->neurons[i]);
+    }
+    cudaFree(layer->neurons);
+    cudaFree(layer);
+}
+
+/**
+ * @brief Free the memory allocated for the entire MLP.
+ *
+ * @param mlp Pointer to the MLP to be freed.
+ */
+void free_mlp(MLP* mlp) {
+    for (int i = 0; i < mlp->nlayers; i++) {
+        free_layer(mlp->layers[i]);
+    }
+    cudaFree(mlp->layers);
+    cudaFree(mlp);
 }
 }

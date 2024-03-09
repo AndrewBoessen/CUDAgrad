@@ -113,6 +113,8 @@ void print_children(Value* v);
  */
 void print_expression(Value* v);
 
+void free_value(Value* v);
+
 void printCudaInfo();
 
 #endif /* AUTODIFF_H */
