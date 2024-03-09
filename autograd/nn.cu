@@ -17,11 +17,11 @@ extern "C" {
 
 extern "C"{
 __device__ void mul_dev(Value* w, Value* x, Value* v) {
-    v->val = w->val * x->val;
     v->grad = 0;
     v->children[0] = w;
     v->children[1] = x;
     v->n_children = 2;
+     v->val = w->val * x->val;
     v->op = MUL;
 }
 
