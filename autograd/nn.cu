@@ -106,10 +106,10 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
     int input_idx = threadIdx.x + 1 % blockDim.x;
     // Product of input for neuron and weight
     Value* prod = mul(n->w[input_idx], x[input_idx]);
-
+    
     // Update the output value with new product
     // Atomic update to not interfere with other threads
-    atomicExch(&out[neuron_idx], add(out[neuron_idx], prod));
+    out[neuron_idx] = add(out[neuron_idx], prod);
 
     // Wait for all thread to finish computing products
     __syncthreads();
@@ -160,7 +160,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         // Allocate empty value arr for outputs
         Value** out;
         allocValueArr(&out, curr_layer->nout);
-        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(&curr_layer, x, out);
+        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(curr_layer, x, out);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs
@@ -233,7 +233,7 @@ void free_neuron(Neuron* neuron) {
     }
     cudaFree(neuron->w);
     free_value(neuron->b);
-    cudaFreeree(neuron);
+    cudaFree(neuron);
 }
 
 /**

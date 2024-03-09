@@ -4,6 +4,8 @@
 * Author: Andrew Boessen
 */
 
+#include "engine.h"
+
 /**
  * @struct Neuron
  * @brief Represents a single neuron in a neural network layer.
@@ -46,7 +48,7 @@ Layer* init_layer(int nin, int nout, int nonlin);
 
 MLP* init_mlp(int* sizes, int nlayers);
 
-Value** mlp_forward(MLP* mlp, Value** x);
+Value** mlp_forward(MLP* mlp, Value** x, int nin);
 
 Value* mse_loss(Value** y_pred, Value** y_true, int size);
 

@@ -283,16 +283,4 @@ void print_expression(Value* v) {
     printf("= %.2f\n", v->val);
 }
 
-/**
- * @brief Function to deallocate memory for a Value object.
- *
- * This function frees the memory allocated for a Value object and its children.
- *
- * @param v Pointer to the Value object to be deallocated.
- */
-void free_value(Value* v) {
-    if (v->children) {
-        cudaFree(v->children);
-    }
-    cudaFree(v);
-}
+

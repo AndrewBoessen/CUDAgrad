@@ -7,7 +7,7 @@
 
 int main() {
     int n_inputs = 2;
-    int n_output = 2;
+    int n_outputs = 2;
 
     int sizes[] = {n_inputs, 5, 10, 5, n_outputs};
     int nlayers = sizeof(sizes) / sizeof(int);
