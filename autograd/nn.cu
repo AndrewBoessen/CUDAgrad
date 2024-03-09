@@ -125,23 +125,25 @@ Layer* init_layer(int nin, int nout, int nonlin) {
  * @param activations Values to store outputs activation function
  */
 __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** products, Value** biases, Value** activations) {
+    printf("Block dim: %d\n", blockDim.x);
+    printf("Thread num: %d\n", threadIdx.x);
     // Index of neuron to computer (block)
     int neuron_idx = blockIdx.x;
-
+    printf("Neuron id: %d\n", neuron_idx);
     // Current neuron in layer
     Neuron* n = layer->neurons[neuron_idx];
 
     // Index of cuurent input of neuron
     int input_idx = threadIdx.x % blockDim.x;
+    printf("Input id: %d\n", input_idx);
 
     // Index of product within array
     int prod_idx = input_idx + blockIdx.x * blockDim.x;
+    printf("Prod id: %d\n", prod_idx);
 
     // Set paramters of product
     Value* prod = products[prod_idx];
-    Value* w = n->w[input_idx];
-    Value* x = x[input_idx];
-    mul_dev(w, x, prod);
+    mul_dev(n->w[input_idx], x[input_idx], prod);
 
     // Add product to children of neuron output
     out[neuron_idx]->children[input_idx] = prod;
@@ -240,7 +242,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
             allocValueArr(&(activations[i]->children), 1);
         }
 
-        layer_forward<<<curr_layer->nout, nin * curr_layer->nout>>>(curr_layer, x, out, products, biases, activations);
+        layer_forward<<<curr_layer->nout, nin>>>(curr_layer, x, out, products, biases, activations);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs
