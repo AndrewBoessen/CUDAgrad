@@ -67,13 +67,58 @@ Output:
 ```bash
 1.00 1.50 + 3.00 - = -0.50
 ```
+
 ## Neural Network
 
 ![Neural Network](./nn.jpg)
 
-### Demos
+Using the nueral network library, it is easy to create a MLP and train on it.
 
-### Training
+The library uses GPU acceleration for the forward pass and for training.
+
+### Example Usage
+
+Simple MLP with 3 hidden layers
+
+```c
+#include "nn.h"
+#include "engine.h"
+
+int main() {
+    int n_inputs = 2;
+    int n_outputs = 2;
+
+    int sizes[] = {n_inputs, 5, 10, 5, n_outputs};
+    int nlayers = sizeof(sizes) / sizeof(int);
+
+    MLP* mlp = init_mlp(sizes, nlayers);
+    show_params(mlp);
+
+    // Allocate inputs
+    Value** in;
+    allocValueArr(&in, n_inputs);
+    // Set inputs
+    in[0] = init_value(1.0);
+    in[1] = init_value(1.0);
+
+    Value** out = mlp_forward(mlp, in, n_inputs);
+
+    print_value(out[0]);
+    print_value(out[1]);
+}
+```
+
+### GPU Acceleration
+
+1. Forward Pass
+
+   On the forward pass each layer's neurons are computed in parallel.
+   There are $n$ blocks and $i$ threads, where $n$ is the number of neurons and $i$ is $n \cdot \text{number of inputs}$.
+   The layer's outputs are fed into the next layer's inputs.
+
+2. Stochastic Gradient Descent
+
+   Utilizing GPU parallelism involves running independent gradient descents at the block level and mini-batch gradient descent at the thread level. Each thread samples k points, and after each iteration, blocks update their gradients by averaging thread-level estimates. Finally, the parameter estimates are obtained by averaging the estimates from all blocks.
 
 ## License
 
