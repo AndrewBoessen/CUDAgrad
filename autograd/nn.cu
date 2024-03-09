@@ -16,7 +16,7 @@ extern "C" {
 }
 
 extern "C"{
-__device__ __inline__ void mul_dev(Value* w, Value* x, Value* v) {
+__device__ void mul_dev(Value* w, Value* x, Value* v) {
     v->val = w->val * x->val;
     v->grad = 0;
     v->children[0] = w;
@@ -25,7 +25,7 @@ __device__ __inline__ void mul_dev(Value* w, Value* x, Value* v) {
     v->op = MUL;
 }
 
-__device__ __inline__ void add_dev(Value* out, Value* b, Value* v) {
+__device__ void add_dev(Value* out, Value* b, Value* v) {
     v->val = out->val + b->val;
     v->grad = 0;
     v->children[0] = out;
@@ -34,7 +34,7 @@ __device__ __inline__ void add_dev(Value* out, Value* b, Value* v) {
     v->op = ADD;
 }
 
-__device__ __inline__ void relu_dev(Value* out, Value* v) {
+__device__ void relu_dev(Value* out, Value* v) {
     v->val = (out->val < 0) ? 0 : out->val;
     v->grad = 0;
     v->children[0] = out;
@@ -127,14 +127,15 @@ Layer* init_layer(int nin, int nout, int nonlin) {
 __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** products, Value** biases, Value** activations) {
     // Index of neuron to computer (block)
     int neuron_idx = blockIdx.x;
+
     // Current neuron in layer
     Neuron* n = layer->neurons[neuron_idx];
 
     // Index of cuurent input of neuron
-    int input_idx = threadIdx.x + 1 % blockDim.x;
+    int input_idx = threadIdx.x % blockDim.x;
 
     // Index of product within array
-    int prod_idx = input_idx * blockDim.x;
+    int prod_idx = input_idx + blockIdx.x * blockDim.x;
 
     // Set paramters of product
     Value* prod = products[prod_idx];
@@ -217,7 +218,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         allocValueArr(&products, nin * curr_layer->nout);
         // Allocate space for products children
         for(int i = 0; i < nin * curr_layer->nout; i++) {
-            products[i]->children = NULL;
+            products[i] = init_value(0);
             allocValueArr(&(products[i]->children), 2);
         }
 
@@ -225,7 +226,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** biases;
         allocValueArr(&biases, curr_layer->nout);
         for(int i = 0; i < curr_layer->nout; i++) {
-            biases[i]->children = NULL;
+            biases[i] = init_value(0);
             allocValueArr(&(biases[i]->children), 2);
         }
 
@@ -233,7 +234,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
         Value** activations;
         allocValueArr(&activations, curr_layer->nout);
         for(int i = 0; i < curr_layer->nout; i++) {
-            activations[i]->children = NULL;
+            activations[i] = init_value(0);
             allocValueArr(&(activations[i]->children), 1);
         }
 
