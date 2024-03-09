@@ -16,6 +16,9 @@ extern "C" {
 }
 
 extern "C"{
+// Define a global mutex lock
+__device__ int mutex = 0;
+
 /**
  * This helper function allocates new memory for a specified amount of Neurons.
  *
@@ -106,10 +109,16 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out) {
     int input_idx = threadIdx.x + 1 % blockDim.x;
     // Product of input for neuron and weight
     Value* prod = mul(n->w[input_idx], x[input_idx]);
+
+    // Acquire lock
+    while (atomicCAS(&mutex, 0, 1) != 0);
     
     // Update the output value with new product
     // Atomic update to not interfere with other threads
     out[neuron_idx] = add(out[neuron_idx], prod);
+
+    // Release lock
+    atomicExch(&mutex, 0);
 
     // Wait for all thread to finish computing products
     __syncthreads();
