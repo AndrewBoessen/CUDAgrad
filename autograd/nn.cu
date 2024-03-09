@@ -59,7 +59,6 @@ void allocNeuronArr(Neuron*** ptr, size_t len) {
 Neuron* init_neuron(int nin, int nonlin) {
     Neuron* neuron;
     allocNeuron(&neuron, 1);
-    Value** weights;
     allocValueArr(&(neuron->w), nin);
     for (int i = 0; i < nin; i++) {
         neuron->w[i] = init_value((rand() % 2000 - 1000) / 1000.0);  // random values between -1 and 1
