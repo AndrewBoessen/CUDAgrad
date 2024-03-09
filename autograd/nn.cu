@@ -125,21 +125,16 @@ Layer* init_layer(int nin, int nout, int nonlin) {
  * @param activations Values to store outputs activation function
  */
 __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** products, Value** biases, Value** activations) {
-    printf("Block dim: %d\n", blockDim.x);
-    printf("Thread num: %d\n", threadIdx.x);
     // Index of neuron to computer (block)
     int neuron_idx = blockIdx.x;
-    printf("Neuron id: %d\n", neuron_idx);
     // Current neuron in layer
     Neuron* n = layer->neurons[neuron_idx];
 
     // Index of cuurent input of neuron
     int input_idx = threadIdx.x % blockDim.x;
-    printf("Input id: %d\n", input_idx);
 
     // Index of product within array
     int prod_idx = input_idx + blockIdx.x * blockDim.x;
-    printf("Prod id: %d\n", prod_idx);
 
     // Set paramters of product
     Value* prod = products[prod_idx];
