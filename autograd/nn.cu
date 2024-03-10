@@ -142,8 +142,6 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Add product to children of neuron output
     out[neuron_idx]->children[input_idx] = prod;
-    // Increment number of children of neuron
-    out[neuron_idx]->n_children += 1;
     // Update neuron output value
     atomicAdd(&(out[neuron_idx]->val), prod->val);
 
