@@ -1,11 +1,15 @@
 /*
  * Demo Nueral Network Lib with MLP
  */
+#include<time.h>
 
 #include "nn.h"
 #include "engine.h"
 
 int main() {
+    // Seed the random number generator
+    srand(time(NULL));
+
     int n_inputs = 2;
     int n_outputs = 2;
 
