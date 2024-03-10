@@ -3,7 +3,7 @@ CC = gcc
 NVCC = nvcc
 
 # Compiler flags
-CFLAGS = -Wall -Wextra -std=c99
+CFLAGS = -g -Wall -Wextra -std=c99
 NVCCFLAGS = -g -G
 
 # Include directories

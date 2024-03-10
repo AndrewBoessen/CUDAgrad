@@ -236,11 +236,8 @@ void print_value(Value* v) {
 void print_children(Value *v) {
     // Go down graph until node has no children
     // Recursivly print childrens' values
-    if (v->n_children == 1) {
-        print_children(v->children[0]);
-    } else if (v->n_children == 2) {
-        print_children(v->children[0]);
-        print_children(v->children[1]);
+    for (int i = 0; i < v->n_children; i++) {
+        print_children(v->children[i]);
     }
 
     char operand;

@@ -175,7 +175,7 @@ __device__ __inline__ void power_backward(Value* v) {
  * The external gradient (from parent nodes) is stored in v->grad.
  * Thus, the final gradient for a is: dv/da = (chosen local derivative) * v->grad
  */
-void leaky_relu_backward(Value* v) {
+__device__ __inline__ void relu_backward(Value* v) {
     if (v->children[0]->val > 0) {
         v->children[0]->grad += v->grad;
     } else {
@@ -217,6 +217,9 @@ __global__ void compute_gradients(Value* output) {
             case POW:
                 power_backward(v);
                 break;
+            case RELU:
+                relu_backward(v);
+                break;
             default:
                 break;
         }
@@ -239,6 +242,9 @@ __global__ void compute_gradients(Value* output) {
                     break;
                 case POW:
                     power_backward(child);
+                    break;
+                case RELU:
+                    relu_backward(child);
                     break;
                 default:
                     break;
