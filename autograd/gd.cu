@@ -74,7 +74,7 @@ void allocValueArr(Value*** ptr, size_t len) {
  *
  * @param v Pointer to the Value object resulting from addition
  */
-__device__ __inline__ void add_backwards(Value* v) {
+void add_backwards(Value* v) {
     for (int i = 0; i < v->n_children; i++) {
         v->children[i]->grad += v->grad;
     }
@@ -96,7 +96,7 @@ __device__ __inline__ void add_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = 1 * v->grad
  * And for b is: dv/db = -1 * v->grad
  */
-__device__ __inline__ void sub_backwards(Value* v) {
+void sub_backwards(Value* v) {
     v->children[0]->grad += v->grad;
     v->children[1]->grad -= v->grad;
 }
@@ -115,7 +115,7 @@ __device__ __inline__ void sub_backwards(Value* v) {
  * Thus, the final gradient for a is: dv/da = b * v->grad
  * And for b is: dv/db = a * v->grad
  */
-__device__ __inline__ void mul_backward(Value* v) {
+void mul_backward(Value* v) {
     // printf("child %.f grad = %f*%f", v->children[0], v->children[1]->val, v->grad);
     // printf("child %.f grad = %f*%f", v->children[1], v->children[0]->val, v->grad);
     v->children[0]->grad += v->children[1]->val * v->grad;
@@ -136,7 +136,7 @@ __device__ __inline__ void mul_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (1/b) * v->grad
  * And for b is: dv/db = (-a/(b^2)) * v->grad
  */
-__device__ __inline__ void div_backward(Value* v) {
+void div_backward(Value* v) {
     v->children[0]->grad += (1.0 / v->children[1]->val) * v->grad;
     v->children[1]->grad += (-v->children[0]->val / (v->children[1]->val * v->children[1]->val)) * v->grad;
 }
@@ -155,7 +155,7 @@ __device__ __inline__ void div_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (b * a^(b-1)) * v->grad
  * And for b is: dv/db = (v * log(a)) * v->grad
  */
-__device__ __inline__ void power_backward(Value* v) {
+void power_backward(Value* v) {
     v->children[0]->grad += (v->children[1]->val * pow(v->children[0]->val, v->children[1]->val - 1)) * v->grad;
     if (v->children[0]->val > 0) {  // Ensure base is positive before computing log
         v->children[1]->grad += (log(v->children[0]->val) * pow(v->children[0]->val, v->children[1]->val)) * v->grad;
@@ -175,7 +175,7 @@ __device__ __inline__ void power_backward(Value* v) {
  * The external gradient (from parent nodes) is stored in v->grad.
  * Thus, the final gradient for a is: dv/da = (chosen local derivative) * v->grad
  */
-__device__ __inline__ void relu_backward(Value* v) {
+void relu_backward(Value* v) {
     if (v->children[0]->val > 0) {
         v->children[0]->grad += v->grad;
     } else {
@@ -184,23 +184,24 @@ __device__ __inline__ void relu_backward(Value* v) {
 }
 
 /**
- * @brief Kernel for running backward pass for expression on device
+ * @brief Compute the backward pass to calculate gradients.
  *
- * This function is a kernel that takes a root node of an expression and calculates the gradients for the expression
+ * This function traverses the computation graph in topological order to compute gradients for each Value object.
  *
- * @param output the root node of the expression
+ * @param v The starting Value object for the backward pass.
  */
-__global__ void compute_gradients(Value* output) {
-    int idx = threadIdx.x + blockDim.x * blockIdx.x;
-    Value* v = &output[idx];
+void backward(Value* root) {
+    Value* topo[1000];  // Assuming a maximum of 100 nodes in the computation graph for simplicity
+    int topo_size = 0;
+    Value* visited[1000];
+    int visited_size = 0;
 
-    // Initialize the gradient of the output value to 1
-    if (idx == 0) {
-        v->grad = 1.0f;
-    }
+    build_topo(root, topo, &topo_size, visited, &visited_size);
 
-    // Traverse the computation graph in reverse order
-    while (v->n_children > 0) {
+    root->grad = 1.0;
+
+    for (int i = topo_size - 1; i >= 0; --i) {
+        Value* v = topo[i];
         switch(v->op) {
             case ADD:
                 add_backwards(v);
@@ -223,51 +224,7 @@ __global__ void compute_gradients(Value* output) {
             default:
                 break;
         }
-        
-
-        for (int i = 1; i < v->n_children; i++) {
-            Value* child = v->children[i];
-            switch(child->op) {
-                case ADD:
-                    add_backwards(child);
-                    break;
-                case SUB:
-                    sub_backwards(child);
-                    break;
-                case MUL:
-                    mul_backward(child);
-                    break;
-                case DIV:
-                    div_backward(child);
-                    break;
-                case POW:
-                    power_backward(child);
-                    break;
-                case RELU:
-                    relu_backward(child);
-                    break;
-                default:
-                    break;
-            }
-            child = v->children[i];
-        }
-        v = v->children[0]; // Move to the first child for the next iteration
     }
-}
-
-/**
- * @brief Compute the backward pass to calculate gradients.
- *
- * This function traverses the computation graph in topological order to compute gradients for each Value object.
- *
- * @param output_values The starting Value object for the backward pass. (i.e output nodes or leafs in the expression)
- */
-void backward(Value* output_values, int num_outputs) {
-    // Launch the kernel with one thread per output value
-    compute_gradients<<<1,num_outputs>>>(output_values);
-
-    // Synchronize to ensure all gradients are computed
-    cudaDeviceSynchronize();
 }
 
 /**

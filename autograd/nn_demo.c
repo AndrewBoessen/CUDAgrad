@@ -38,10 +38,11 @@ int main() {
     print_value(out[0]);
     print_value(out[1]);
 
+    backward(loss);
+
     printf("LOSS:\n");
-    backward(loss, 1);
-    
-    print_expression(loss);
+    print_value(loss);
+
     //print_expression(out[0]);
     show_params(mlp);
 }

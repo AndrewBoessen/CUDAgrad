@@ -96,7 +96,7 @@ void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* vi
 /**
  * This function traverses the computation graph in topological order to compute gradients for each Value object.
  */
-void backward(Value* output_values, int num_outputs) ;
+void backward(Value* root);
 
 /**
  * This function outputs the 'val' and 'grad' attributes of the given Value object to the console.
