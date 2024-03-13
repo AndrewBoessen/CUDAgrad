@@ -277,19 +277,14 @@ Value* mse_loss(Value** y_pred, Value** y_true, int size) {
 __global__ void zero_grad_kernel(Layer** layers) {
     // Id for layer
     int layer_idx = blockIdx.x;
-    printf("Layer id: %d\n", layer_idx);
-
     Layer* l = layers[layer_idx];
 
     // Id for neuron within id
     int neuron_idx = blockIdx.y % l->nout;
-    printf("Neuron id: %d\n", neuron_idx);
-
     Neuron* n = l->neurons[neuron_idx];
 
     // Get param to update from thread id
     int weight_idx = threadIdx.x % n->nin;
-    printf("Weight id: %d\n", weight_idx);
     // Zero grads for weight and bias
     n->w[weight_idx]->grad = 0;
     n->b->grad = 0;
@@ -315,6 +310,8 @@ void zero_grad(MLP* mlp) {
     dim3 grid_size(mlp->nlayers, max_neurons);
     // Call Kernel to zero params' grads
     zero_grad_kernel<<<grid_size,max_neurons>>>(mlp->layers);
+    // Wait for kernel to finish
+    cudaDeviceSynchronize();
 }
 
 /**

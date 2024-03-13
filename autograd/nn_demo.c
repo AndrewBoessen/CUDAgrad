@@ -46,5 +46,4 @@ int main() {
     //print_expression(out[0]);
     show_params(mlp);
 
-    zero_grad(mlp);
 }
