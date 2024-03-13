@@ -282,19 +282,18 @@ __global__ void zero_grad_kernel(Layer** layers) {
     Layer* l = layers[layer_idx];
 
     // Id for neuron within id
-    int neuron_idx = threadIdx.x % l->nout;
+    int neuron_idx = blockIdx.y % l->nout;
     printf("Neuron id: %d\n", neuron_idx);
 
     Neuron* n = l->neurons[neuron_idx];
-    // Get neuron within layer
-    if (neuron_idx <= l->nout) {
-        // Get param to update from thread id
-        int weight_idx = (threadIdx.y % blockDim.x) % n->nin;
-        printf("Weight id: %d\n", weight_idx);
-        // Zero grads for weight and bias
-        n->w[weight_idx]->grad = 0;
-        n->b->grad = 0;
-    }
+
+    // Get param to update from thread id
+    int weight_idx = threadIdx.x % n->nin;
+    printf("Weight id: %d\n", weight_idx);
+    // Zero grads for weight and bias
+    n->w[weight_idx]->grad = 0;
+    n->b->grad = 0;
+    
 }
 
 /**
@@ -310,8 +309,12 @@ void zero_grad(MLP* mlp) {
             max_neurons = mlp->layers[i]->nout;
         }
     }
+    // Dimensions of grid
+    // X dim is for layers
+    // Y dim is for neurons in layer
+    dim3 grid_size(mlp->nlayers, max_neurons);
     // Call Kernel to zero params' grads
-    zero_grad_kernel<<<mlp->nlayers, max_neurons * max_neurons>>>(mlp->layers);
+    zero_grad_kernel<<<grid_size,max_neurons>>>(mlp->layers);
 }
 
 /**
