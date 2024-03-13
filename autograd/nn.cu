@@ -270,6 +270,61 @@ Value* mse_loss(Value** y_pred, Value** y_true, int size) {
 }
 
 /**
+ * @brief CUDA kernel to zero weight and bias of mlp
+ *
+ * @param layers Layers of the MLP to update
+ */
+__global__ void zero_grad_kernel(Layer** layers) {
+    // Id for layer
+    int layer_idx = blockIdx.x;
+    printf("Layer id: %d\n", layer_idx);
+
+    Layer* l = layers[layer_idx];
+
+    // Id for neuron within id
+    int neuron_idx = threadIdx.x % l->nout;
+    printf("Neuron id: %d\n", neuron_idx);
+
+    Neuron* n = l->neurons[neuron_idx];
+    // Get neuron within layer
+    if (neuron_idx <= l->nout) {
+        // Get param to update from thread id
+        int weight_idx = (threadIdx.y % blockDim.x) % n->nin;
+        printf("Weight id: %d\n", weight_idx);
+        // Zero grads for weight and bias
+        n->w[weight_idx]->grad = 0;
+        n->b->grad = 0;
+    }
+}
+
+/**
+ * @brief Host function to zero gradients for params in MLP
+ *
+ * @param mlp MLP to zero grads
+ */
+void zero_grad(MLP* mlp) {
+    // Get maximum layer size
+    int max_neurons = 0;
+    for (int i = 0; i < mlp->nlayers; i++) {
+        if (mlp->layers[i]->nout > max_neurons) {
+            max_neurons = mlp->layers[i]->nout;
+        }
+    }
+    // Call Kernel to zero params' grads
+    zero_grad_kernel<<<mlp->nlayers, max_neurons * max_neurons>>>(mlp->layers);
+}
+
+/**
+ * @brief CUDA kernel to update paramaters of MLP
+ *
+ * @param layers Layers of the MLP to update
+ * @param lr Learning rate
+ */
+__global__ void update_params(Layer** layers, float lr) {
+    
+}
+
+/**
  * @brief Update the weights of a value using gradient descent.
  *
  * @param v Pointer to the value whose weights need to be updated.

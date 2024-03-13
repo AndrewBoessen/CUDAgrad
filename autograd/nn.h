@@ -56,6 +56,8 @@ void update_weights(Value* v, float lr);
 
 void show_params(MLP* mlp);
 
+void zero_grad(MLP* mlp);
+
 Value* train(MLP* mlp, Value** x, Value** y_true, float lr);
 
 void free_neuron(Neuron* neuron);

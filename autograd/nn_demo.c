@@ -24,8 +24,8 @@ int main() {
     Value** in;
     allocValueArr(&in, n_inputs);
     // Set inputs
-    in[0] = init_value(1.0);
-    in[1] = init_value(1.0);
+    in[0] = init_value(1.5);
+    in[1] = init_value(3.0);
 
     Value** out = mlp_forward(mlp, in, n_inputs);
     
@@ -45,4 +45,6 @@ int main() {
 
     //print_expression(out[0]);
     show_params(mlp);
+
+    zero_grad(mlp);
 }
