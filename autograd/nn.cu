@@ -331,9 +331,6 @@ __device__ __inline__ void update_weights_dev(Value* v, float lr) {
  * @param lr Learning rate
  */
 __global__ void update_params(Layer** layers, float lr) {
-    printf("Block X %d\n", blockIdx.x);
-    printf("Block y %d\n", blockIdx.y);
-    printf("Thread id %d\n", threadIdx.x);
    // Id for layer
     int layer_idx = blockIdx.x;
     Layer* l = layers[layer_idx];
