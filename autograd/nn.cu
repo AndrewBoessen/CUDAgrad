@@ -3,6 +3,7 @@
 *
 * Author: Andrew Boessen
 */
+#include <__clang_cuda_builtin_vars.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <cuda.h>
@@ -321,17 +322,49 @@ void zero_grad(MLP* mlp) {
  * @param lr Learning rate
  */
 __global__ void update_params(Layer** layers, float lr) {
-    
+    printf("Block X %d\n", blockIdx.x);
+    printf("Block y %d\n", blockIdx.y);
+    printf("Thread id %d\n", threadIdx.x);
+   // Id for layer
+    int layer_idx = blockIdx.x;
+    Layer* l = layers[layer_idx];
+
+    // Id for neuron within id
+    int neuron_idx = blockIdx.y % l->nout;
+    Neuron* n = l->neurons[neuron_idx];
 }
 
 /**
- * @brief Update the weights of a value using gradient descent.
+ * @brief Device func to update the weights of a value using gradient descent.
  *
  * @param v Pointer to the value whose weights need to be updated.
  * @param lr Learning rate for the weight update.
  */
-__device__ void update_weights(Value* v, float lr) {
+__device__ __inline__ void update_weights_dev(Value* v, float lr) {
     v->val -= lr * v->grad;
+}
+
+/**
+ * @brief Host function to update weight
+ *
+ * @param mlp MLP to update weights for
+ */
+void update_weights(MLP* mlp, float lr) {
+    // Get maximum layer size
+    int max_neurons = 0;
+    for (int i = 0; i < mlp->nlayers; i++) {
+        if (mlp->layers[i]->nout > max_neurons) {
+            max_neurons = mlp->layers[i]->nout;
+        }
+    }
+    // Dimensions of grid
+    // X dim is for layers
+    // Y dim is for neurons in layer
+    dim3 grid_size(mlp->nlayers, max_neurons);
+
+    update_params<<<grid_size, max_neurons>>>(mlp->layers, lr);
+
+    cudaDeviceSynchronize();
 }
 
 /**

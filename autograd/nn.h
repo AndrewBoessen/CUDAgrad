@@ -52,7 +52,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin);
 
 Value* mse_loss(Value** y_pred, Value** y_true, int size);
 
-void update_weights(Value* v, float lr);
+void update_weights(MLP* mlp, float lr);
 
 void show_params(MLP* mlp);
 
