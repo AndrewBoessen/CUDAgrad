@@ -45,5 +45,6 @@ int main() {
 
     //print_expression(out[0]);
     show_params(mlp);
+    update_weights(mlp, 0.0);
 
 }

@@ -3,7 +3,6 @@
 *
 * Author: Andrew Boessen
 */
-#include <__clang_cuda_builtin_vars.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <cuda.h>
@@ -316,6 +315,16 @@ void zero_grad(MLP* mlp) {
 }
 
 /**
+ * @brief Device func to update the weights of a value using gradient descent.
+ *
+ * @param v Pointer to the value whose weights need to be updated.
+ * @param lr Learning rate for the weight update.
+ */
+__device__ __inline__ void update_weights_dev(Value* v, float lr) {
+    v->val -= lr * v->grad;
+}
+
+/**
  * @brief CUDA kernel to update paramaters of MLP
  *
  * @param layers Layers of the MLP to update
@@ -330,18 +339,13 @@ __global__ void update_params(Layer** layers, float lr) {
     Layer* l = layers[layer_idx];
 
     // Id for neuron within id
-    int neuron_idx = blockIdx.y % l->nout;
-    Neuron* n = l->neurons[neuron_idx];
-}
-
-/**
- * @brief Device func to update the weights of a value using gradient descent.
- *
- * @param v Pointer to the value whose weights need to be updated.
- * @param lr Learning rate for the weight update.
- */
-__device__ __inline__ void update_weights_dev(Value* v, float lr) {
-    v->val -= lr * v->grad;
+    int neuron_idx = blockIdx.y;
+    if (neuron_idx <= l->nout) {
+        Neuron* n = l->neurons[neuron_idx];
+        if (threadIdx.x <= n->nin) {
+            update_weights_dev(n->w[threadIdx.x], lr);
+        }
+    }
 }
 
 /**
