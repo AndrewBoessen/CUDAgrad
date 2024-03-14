@@ -191,9 +191,9 @@ void relu_backward(Value* v) {
  * @param v The starting Value object for the backward pass.
  */
 void backward(Value* root) {
-    Value* topo[1000];  // Assuming a maximum of 100 nodes in the computation graph for simplicity
+    Value* topo[10000];  // Assuming a maximum of 10000 nodes in the computation graph for simplicity
     int topo_size = 0;
-    Value* visited[1000];
+    Value* visited[10000];
     int visited_size = 0;
 
     build_topo(root, topo, &topo_size, visited, &visited_size);
