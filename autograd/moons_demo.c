@@ -9,7 +9,7 @@
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 50
+#define EPOCHS 1
 #define BATCH_SIZE 10
 #define LEARNING_RATE 0.5
 #define DATA_SIZE 1000
@@ -41,7 +41,7 @@ int main() {
     
     // Load data from data file
     Entry entries[DATA_SIZE];
-    const char *filename = "./data/data.csv";
+    const char *filename = "./data/make_moons.csv";
     int num_entries = load_data(filename, entries);
 
     if (num_entries == -1) {
@@ -61,7 +61,7 @@ int main() {
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
         zero_grad(mlp);
-        shuffle_entries(entries, DATA_SIZE);
+        //shuffle_entries(entries, DATA_SIZE);
         // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < BATCH_SIZE / DATA_SIZE; j++) {  
             // zero loss for batch
@@ -69,7 +69,6 @@ int main() {
             // starting index
             int starting_idx = j * BATCH_SIZE;
             // Select next 10 unvisited datapoints in shuffled array
-            int num_selected = 0;
             for (int n = starting_idx; n < BATCH_SIZE; n++) {
                 Entry curr_entry = entries[n];
                 // Alloc new input array
@@ -81,6 +80,7 @@ int main() {
 
                 // Forward pass for single datapoint
                 Value** out = mlp_forward(mlp, in, NUM_INPUTS);
+                printf("Output %f\n", out[0]->val);
                 // Calculate loss for single datapoint
                 Value* loss = mse_loss(out, gt, NUM_OUTPUTS);
 
@@ -93,7 +93,6 @@ int main() {
             // Print loss
             printf("EPOCH: %d BATCH: %d / %d LOSS: %f\n", i, j, BATCH_SIZE / DATA_SIZE, total_loss->val);
         }
-        show_params(mlp);
     }
 
     return EXIT_SUCCESS;
