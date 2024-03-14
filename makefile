@@ -10,7 +10,7 @@ NVCCFLAGS = -g -G
 INC_DIRS = -I./autograd/
 
 # Source files
-C_SOURCES = autograd/nn_demo.c autograd/engine.c autograd/data.c
+C_SOURCES = autograd/moons_demo.c autograd/engine.c autograd/data.c
 CU_SOURCES = autograd/gd.cu autograd/nn.cu
 
 # Object files
@@ -18,7 +18,7 @@ C_OBJECTS = $(C_SOURCES:.c=.o)
 CU_OBJECTS = $(CU_SOURCES:.cu=.o)
 
 # Executable
-EXECUTABLE = nn_demo
+EXECUTABLE = moons_demo
 
 # Build rules
 all: $(EXECUTABLE)

@@ -2,8 +2,8 @@
  * Train MLP for make moons classification
  */
 #include <stdlib.h>
-#include<time.h>
-#include<stdio.h>
+#include <time.h>
+#include <stdio.h>
 
 #include "nn.h"
 #include "engine.h"
@@ -58,14 +58,15 @@ int main() {
     for (int i = 0; i < EPOCHS; i++) {
         zero_grad(mlp);
         shuffle_entries(entries, DATA_SIZE);
-        // SGD calculate loss for a batch of 10 data points
+        // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < BATCH_SIZE / DATA_SIZE; j++) {  
+            // zero loss for batch
             Value* total_loss = init_value(0.0);
             // starting index
             int starting_idx = j * BATCH_SIZE;
             // Select next 10 unvisited datapoints in shuffled array
             int num_selected = 0;
-            for (int n = starting_idx; n < 10; n++) {
+            for (int n = starting_idx; n < BATCH_SIZE; n++) {
                 Entry curr_entry = entries[n];
                 // Alloc new input array
                 float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
@@ -90,8 +91,6 @@ int main() {
         }
         show_params(mlp);
     }
-
-
 
     return EXIT_SUCCESS;
 }
