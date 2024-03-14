@@ -346,6 +346,9 @@ __global__ void update_params(Layer** layers, float lr) {
         if (weight_idx <= n->nin - 1) {
             update_weights_dev(n->w[weight_idx], lr);
         }
+        if(weight_idx == n->nin -1) {
+            update_weights_dev(n->b, lr);
+        }
     }
 }
 
