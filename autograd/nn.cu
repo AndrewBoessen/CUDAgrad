@@ -331,16 +331,20 @@ __device__ __inline__ void update_weights_dev(Value* v, float lr) {
  * @param lr Learning rate
  */
 __global__ void update_params(Layer** layers, float lr) {
-   // Id for layer
+    // Id for layer
     int layer_idx = blockIdx.x;
     Layer* l = layers[layer_idx];
 
     // Id for neuron within id
     int neuron_idx = blockIdx.y;
-    if (neuron_idx <= l->nout) {
+    if (neuron_idx <= l->nout - 1) {
         Neuron* n = l->neurons[neuron_idx];
-        if (threadIdx.x <= n->nin) {
-            update_weights_dev(n->w[threadIdx.x], lr);
+
+        // Get param to update from thread id
+        int weight_idx = threadIdx.x;
+
+        if (weight_idx <= n->nin - 1) {
+            update_weights_dev(n->w[weight_idx], lr);
         }
     }
 }
