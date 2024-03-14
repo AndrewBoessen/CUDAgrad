@@ -9,8 +9,8 @@
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 20
-#define BATCH_SIZE 25
+#define EPOCHS 10
+#define BATCH_SIZE 1
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
 #define NUM_INPUTS 2
@@ -63,7 +63,7 @@ int main() {
         float epoch_loss = 0.0;
         shuffle_entries(entries, DATA_SIZE);
         // SGD - calculate loss for a batch of 10 data points
-        for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {  
+        for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
             // zero loss for batch
             Value* total_loss = init_value(0.0);
             // starting index
@@ -90,11 +90,12 @@ int main() {
             backward(total_loss);
             // Single step after batch
             update_weights(mlp, LEARNING_RATE);
-            // Zero grads for next batch
-            zero_grad(mlp);
+            // zero grads for next batch
+            zero_grad(mlp); 
 
             // Print loss
             epoch_loss += total_loss->val;
+            //printf("EPOCH: %d LOSS: %f\n", i+1, total_loss->val);
             
         }
         printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss/(DATA_SIZE/BATCH_SIZE));
