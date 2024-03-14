@@ -10,7 +10,7 @@ NVCCFLAGS = -g -G
 INC_DIRS = -I./autograd/
 
 # Source files
-C_SOURCES = autograd/nn_demo.c autograd/engine.c
+C_SOURCES = autograd/nn_demo.c autograd/engine.c autograd/data.c
 CU_SOURCES = autograd/gd.cu autograd/nn.cu
 
 # Object files
