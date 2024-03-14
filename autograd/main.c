@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
     Value* q = add(x,y);
     Value* f = mul(q,z);
 
-    backward(f,1);
+    backward(f);
 
     print_expression(f);
     print_value(x);
