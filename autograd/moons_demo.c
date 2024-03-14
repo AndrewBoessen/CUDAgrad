@@ -40,12 +40,16 @@ int main() {
     srand(time(NULL));
     
     // Load data from data file
-    Entry* entries;
-    int count = load_data("./data/make_moons.csv", &entries);
+    Entry entries[DATA_SIZE];
+    const char *filename = "./data/data.csv";
+    int num_entries = load_data(filename, entries);
 
-    if (count == -1) {
+    if (num_entries == -1) {
+        fprintf(stderr, "Failed to load data from file %s\n", filename);
         return EXIT_FAILURE;
     }
+
+    printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
     int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};

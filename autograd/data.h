@@ -17,6 +17,4 @@ typedef struct {
     int label;
 } Entry;
 
-int parse_line(char* line, Entry* entry);
-
-int load_data(const char* filename, Entry** entries);
+int load_data(const char *filename, Entry dataset[]);
