@@ -116,7 +116,7 @@ This is an example traning a MLP for classification on the [make moons](https://
 
 ![data](./moons.png)
 
-This example uses a MLP with an input layer with two neurons for X and Y cordinates, 2 hidden layers of 16 neurons and a single output neuron for binary classification.
+This example uses a MLP with an input layer with 2 neurons for X and Y cordinates, 2 hidden layers of 16 neurons and a single output neuron for binary classification.
 
 To train, use stochastic gradient descent. In this example, the network is trained for 15 epochs with a batch size of 10. This implements a variable learning rate that decreases with epoch index.
 
