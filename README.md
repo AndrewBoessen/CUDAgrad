@@ -112,7 +112,7 @@ int main() {
 
 ### Demo - Make Moons
 
-This is an example traning a MLP for classification on the [make moons](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html) dataset
+This is an example training a MLP for classification on the [make moons](https://scikit-learn.org/stable/modules/generated/sklearn.datasets.make_moons.html) dataset
 
 ![data](./moons.png)
 
@@ -220,9 +220,8 @@ int main() {
             // zero grads for next batch
             zero_grad(mlp); 
 
-            // Print loss
+            // Epoch loss
             epoch_loss += total_loss->val;
-            //printf("EPOCH: %d LOSS: %f\n", i+1, total_loss->val);
         }
         printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss/DATA_SIZE);
     }
