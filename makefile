@@ -17,13 +17,20 @@ CU_SOURCES = autograd/gd.cu autograd/nn.cu
 C_OBJECTS = $(C_SOURCES:.c=.o)
 CU_OBJECTS = $(CU_SOURCES:.cu=.o)
 
+# Demos
+NN = nn_demo
+MOONS = moons_demo
+
 # Executable
-EXECUTABLE = nn_demo moons_demo
+EXECUTABLE = $(NN) $(MOONS)
 
 # Build rules
 all: $(EXECUTABLE)
 
-$(EXECUTABLE): $(C_OBJECTS) $(CU_OBJECTS)
+$(NN): $(C_OBJECTS) $(CU_OBJECTS)
+	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(C_OBJECTS) -o $@
+
+$(MOONS): $(C_OBJECTS) $(CU_OBJECTS)
 	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(C_OBJECTS) -o $@
 
 $(EXECUTABLE): %.o: %.c
