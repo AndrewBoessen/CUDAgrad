@@ -64,6 +64,8 @@ int main() {
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
+        float epoch_loss = 0.0;
+
         // Variable learning rate
         float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
 
@@ -87,9 +89,11 @@ int main() {
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
             // Train batch
-            Value** out = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            float loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            // Add to epoch loss
+            epoch_loss += loss;
         }
-        printf("EPOCH: %d\n", i+1);
+        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / DATA_SIZE);
     }
 
     return EXIT_SUCCESS;

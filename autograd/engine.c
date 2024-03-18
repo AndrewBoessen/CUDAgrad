@@ -195,7 +195,6 @@ Value* relu(Value* a) {
  * @param visited_size Pointer to the size of the visited array.
  */
 void build_topo(Value* v, Value** topo, int* topo_size, Value** visited, int* visited_size) {
-    //printf("V: %f, CHILDREN: %d\n", v->val, v->n_children);
     for (int i = 0; i < *visited_size; ++i) {
         if (visited[i] == v) return;
     }

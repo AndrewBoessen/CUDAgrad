@@ -286,7 +286,7 @@ void freePtrArr(Value*** arr, int len) {
  * @param batch_size number of datapoints in batch
  * @return Total loss of entire batch
  */
-Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
+float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
     // Arrays for storing Value arrays to later be freed
     Value** out_ptrs[mlp->nlayers];
     //Value** products_ptrs[mlp->nlayers];
@@ -382,7 +382,7 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
     freePtrArr(bias_ptrs, mlp->nlayers);
     freePtrArr(act_ptrs, mlp->nlayers);
 
-    return x;
+    return total_loss->val;
 }
 
 /**
