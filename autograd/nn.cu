@@ -3,7 +3,7 @@
 *
 * Author: Andrew Boessen
 */
-#include <__clang_cuda_builtin_vars.h>
+
 #include <stddef.h>
 #include <stdio.h>
 #include <cuda.h>
@@ -145,7 +145,9 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     int bias_idx = out_idx;
     int act_idx = out_idx;
-
+    
+    printf("Datapoint: %d Nueron: %d Input: %d Prod: %d Out: %d\n", datapoint_id, neuron_idx, input_idx, prod_idx, out_idx);
+    /*
     // Set paramters of product
     Value* prod = products[prod_idx];
     mul_dev(n->w[input_idx], x[input_idx], prod);
@@ -174,6 +176,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
             out[out_idx] = relu_val;
         }
     }
+    */
     
 }
 
@@ -324,7 +327,7 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
 
         // Grid dimensions: x for neurons in layer, y for batch size
         dim3 grid_size(curr_layer->nout, batch_size);
-
+        layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products, biases, activations);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs
@@ -334,8 +337,6 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
     }
     
     // Free network from memory
-    cudaFree(out);
-    cudaFree(products);
 
     return x;
 }
