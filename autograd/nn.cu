@@ -148,7 +148,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
     mul_dev(n->w[threadIdx.x], x[input_idx], prod);
 
     // Add product to children of neuron output
-    out[out_idx]->children[input_idx] = prod;
+    out[out_idx]->children[threadIdx.x] = prod;
     // Update neuron output value
     atomicAdd(&(out[out_idx]->val), prod->val);
 
@@ -257,6 +257,22 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
 }
 
 /**
+ * @brief Helper function to free arrays of allocated Value in maanged memory
+ *
+ * @param arr Array of Value arrs to free
+ */
+void freePtrArr(Value*** arr, int len) {
+    for (int i = 0; i < len; i++) {
+        Value** curr_arr = arr[i];
+        // Loop until NULL pointer encountered
+        for (int j = 0; curr_arr[j] != NULL; j++) {
+            cudaFree(curr_arr[j]);
+        }
+        cudaFree(curr_arr);
+    } 
+}
+
+/**
  * @brief Train the MLP for one batch
  *
  * Do a forward pass for an entire batch of data points,
@@ -268,6 +284,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
  * @param y_true ground truth for datapoints in batch
  * @param lr learning rate
  * @param batch_size number of datapoints in batch
+ * @return Total loss of entire batch
  */
 Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
     // Arrays for storing Value arrays to later be freed
@@ -327,9 +344,42 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
         nin = curr_layer->nout;
         // Next layers inputs are current layers outputs
         x = out;
+
+        // Add Value arrs to arrays to free
+        out_ptrs[i] = out;
+        products_ptrs[i] = products;
+        bias_ptrs[i] = biases;
+        act_ptrs[i] = activations;
     }
+    // Calculate loss for each output
+    Value* total_loss = init_value(0.0);
+
+    for (int i = 0; i < batch_size * nin; i+=nin) {
+        Value* curr_data_out[nin];
+        Value* curr_data_gt[nin];
+        // Populate array with slice from output
+        for (int j = 0; j < nin; j++) {
+            curr_data_out[j] = x[i + j];
+            curr_data_gt[j] = y_true[i + j];
+        }
+        // Calculate loss for each datapoint in batch
+        Value* loss = mse_loss(curr_data_out, curr_data_gt, nin);
+        // Add datapoint loss to total loss
+        total_loss = add(total_loss, loss);
+    }
+
+    // Do backprop to find gradients
+    backward(total_loss);
+    // Single step for batch
+    update_weights(mlp, lr);
+    // zero grads before next batch
+    zero_grad(mlp);
     
     // Free network from memory
+    freePtrArr(out_ptrs, mlp->nlayers);
+    freePtrArr(products_ptrs, mlp->nlayers);
+    freePtrArr(bias_ptrs, mlp->nlayers);
+    freePtrArr(act_ptrs, mlp->nlayers);
 
     return x;
 }
