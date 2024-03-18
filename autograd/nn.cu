@@ -135,22 +135,17 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
     Neuron* n = layer->neurons[neuron_idx];
 
     // Index of cuurent input of neuron
-    int input_idx = threadIdx.x;
+    int input_idx = blockDim.x * blockIdx.y + threadIdx.x;
 
     // Index of product within array
-    int prod_idx = input_idx + (neuron_idx * blockDim.x + datapoint_id * blockDim.x);
+    int prod_idx = (gridDim.x * blockIdx.y + blockIdx.x) * blockDim.x + threadIdx.x;
 
     // Index of nuerons output
-    int out_idx = datapoint_id * blockDim.x + neuron_idx;
-
-    int bias_idx = out_idx;
-    int act_idx = out_idx;
+    int out_idx = datapoint_id * gridDim.x + neuron_idx;
     
-    printf("Datapoint: %d Nueron: %d Input: %d Prod: %d Out: %d\n", datapoint_id, neuron_idx, input_idx, prod_idx, out_idx);
-    /*
     // Set paramters of product
     Value* prod = products[prod_idx];
-    mul_dev(n->w[input_idx], x[input_idx], prod);
+    mul_dev(n->w[threadIdx.x], x[input_idx], prod);
 
     // Add product to children of neuron output
     out[out_idx]->children[input_idx] = prod;
@@ -162,22 +157,20 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Add bias to sum and activate if nonlin
     // Only run if last thread in block
-    if (input_idx == blockDim.x - 1) {
-        Value* sum = biases[bias_idx];
+    if (threadIdx.x == blockDim.x - 1) {
+        Value* sum = biases[out_idx];
         add_dev(out[out_idx], n->b, sum);
         
         out[out_idx] = sum;
 
         if (n->nonlin) {
             // Activate with ReLU function if nonlin
-            Value* relu_val = activations[act_idx];
+            Value* relu_val = activations[out_idx];
             relu_dev(out[out_idx], relu_val);
 
             out[out_idx] = relu_val;
         }
     }
-    */
-    
 }
 
 /**
