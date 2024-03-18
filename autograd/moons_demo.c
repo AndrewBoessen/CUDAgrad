@@ -11,7 +11,7 @@
 
 #define EPOCHS 15
 #define BATCH_SIZE 10
-#define LEARNING_RATE 0.001
+#define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
 #define NUM_INPUTS 2
 #define NUM_OUTPUTS 1
@@ -61,47 +61,33 @@ int main() {
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
         // Variable learning rate
-        float lr = 0.01 - (0.009 * ((float)(i+1)/EPOCHS));
-
-        float epoch_loss = 0.0;
+        float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
 
         shuffle_entries(entries, DATA_SIZE);
         // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
-            // zero loss for batch
-            Value* total_loss = init_value(0.0);
             // starting index
             int starting_idx = j * BATCH_SIZE;
+            // Batch data and ground truth
+            float inputs[NUM_INPUTS * BATCH_SIZE];
+            float grnd_truth[NUM_OUTPUTS * BATCH_SIZE];
             // Select next 10 unvisited datapoints in shuffled array
             for (int n = starting_idx; n < starting_idx + BATCH_SIZE; n++) {
                 Entry curr_entry = entries[n];
-                // Alloc new input array
-                float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
-                Value** in = init_values(inputs, NUM_INPUTS);
+                // add to bath inputs
+                inputs[n * NUM_INPUTS] = curr_entry.x;
+                inputs[n * NUM_INPUTS + 1] = curr_entry.y;
+                
                 // Expected y
-                float outputs[NUM_OUTPUTS] = {curr_entry.label};
-                Value** gt = init_values(outputs, NUM_OUTPUTS);
-
-                // Forward pass for single datapoint
-                Value** out = mlp_forward(mlp, in, NUM_INPUTS);
-
-                // Calculate loss for single datapoint
-                Value* loss = mse_loss(out, gt, NUM_OUTPUTS);
-
-                total_loss = add(total_loss, loss);
+                grnd_truth[n * NUM_OUTPUTS] = curr_entry.label;
             }
-            // Do backprop on total loss of batch
-            backward(total_loss);
-            // Single step after batch
-            update_weights(mlp, lr);
-            // zero grads for next batch
-            zero_grad(mlp); 
+            Value** in = init_values(inputs, NUM_INPUTS * BATCH_SIZE);
+            Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
-            // Print loss
-            epoch_loss += total_loss->val;
-            //printf("EPOCH: %d LOSS: %f\n", i+1, total_loss->val);
+            // Train batch
+            Value** out = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
         }
-        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss/DATA_SIZE);
+        printf("EPOCH: %d\n", i+1);
     }
 
     return EXIT_SUCCESS;

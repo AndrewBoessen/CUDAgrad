@@ -142,7 +142,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Index of nuerons output
     int out_idx = datapoint_id * gridDim.x + neuron_idx;
-    
+
     // Set paramters of product
     Value* prod = products[prod_idx];
     mul_dev(n->w[threadIdx.x], x[input_idx], prod);
@@ -289,12 +289,12 @@ void freePtrArr(Value*** arr, int len) {
 Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
     // Arrays for storing Value arrays to later be freed
     Value** out_ptrs[mlp->nlayers];
-    Value** products_ptrs[mlp->nlayers];
+    //Value** products_ptrs[mlp->nlayers];
     Value** bias_ptrs[mlp->nlayers];
     Value** act_ptrs[mlp->nlayers];
 
-    for (int i = 0; i < mlp->nlayers; i++) {
-        Layer* curr_layer = mlp->layers[i];
+    for (int l = 0; l < mlp->nlayers; l++) {
+        Layer* curr_layer = mlp->layers[l];
         // Total number of neurons in entire batch
         int total_neurons = curr_layer->nout * batch_size;
 
@@ -346,10 +346,11 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
         x = out;
 
         // Add Value arrs to arrays to free
-        out_ptrs[i] = out;
-        products_ptrs[i] = products;
-        bias_ptrs[i] = biases;
-        act_ptrs[i] = activations;
+        out_ptrs[l] = out;
+        //products_ptrs[l] = products;
+        bias_ptrs[l] = biases;
+        act_ptrs[l] = activations;
+
     }
     // Calculate loss for each output
     Value* total_loss = init_value(0.0);
@@ -364,9 +365,11 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
         }
         // Calculate loss for each datapoint in batch
         Value* loss = mse_loss(curr_data_out, curr_data_gt, nin);
+
         // Add datapoint loss to total loss
         total_loss = add(total_loss, loss);
     }
+    printf("LOSS: %f\n", total_loss->val / batch_size);
 
     // Do backprop to find gradients
     backward(total_loss);
@@ -377,7 +380,7 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
     
     // Free network from memory
     freePtrArr(out_ptrs, mlp->nlayers);
-    freePtrArr(products_ptrs, mlp->nlayers);
+    //freePtrArr(products_ptrs, mlp->nlayers);
     freePtrArr(bias_ptrs, mlp->nlayers);
     freePtrArr(act_ptrs, mlp->nlayers);
 
