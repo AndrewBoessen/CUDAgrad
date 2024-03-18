@@ -57,6 +57,10 @@ int main() {
 
     MLP* mlp = init_mlp(sizes, nlayers);
 
+    // Batch data and ground truth
+    float* inputs = (float*)malloc(NUM_INPUTS * BATCH_SIZE * sizeof(float));
+    float* grnd_truth = (float*)malloc(NUM_OUTPUTS * BATCH_SIZE * sizeof(float));
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
@@ -68,12 +72,10 @@ int main() {
         for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
             // starting index
             int starting_idx = j * BATCH_SIZE;
-            // Batch data and ground truth
-            float inputs[NUM_INPUTS * BATCH_SIZE];
-            float grnd_truth[NUM_OUTPUTS * BATCH_SIZE];
+            
             // Select next 10 unvisited datapoints in shuffled array
-            for (int n = starting_idx; n < starting_idx + BATCH_SIZE; n++) {
-                Entry curr_entry = entries[n];
+            for (int n = 0; n < BATCH_SIZE; n++) {
+                Entry curr_entry = entries[starting_idx + n];
                 // add to bath inputs
                 inputs[n * NUM_INPUTS] = curr_entry.x;
                 inputs[n * NUM_INPUTS + 1] = curr_entry.y;

@@ -369,8 +369,6 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
         // Add datapoint loss to total loss
         total_loss = add(total_loss, loss);
     }
-    printf("LOSS: %f\n", total_loss->val / batch_size);
-
     // Do backprop to find gradients
     backward(total_loss);
     // Single step for batch
