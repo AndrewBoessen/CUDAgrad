@@ -191,9 +191,9 @@ void relu_backward(Value* v) {
  * @param v The starting Value object for the backward pass.
  */
 void backward(Value* root) {
-    Value** topo = (Value**)malloc(10000 * sizeof(Value*));  // Assuming a maximum of 10000 nodes in the computation graph for simplicity
+    Value** topo = (Value**)malloc(5000 * sizeof(Value*));  // Assuming a maximum of 10000 nodes in the computation graph for simplicity
     int topo_size = 0;
-    Value** visited = (Value**)malloc(10000 * sizeof(Value*));
+    Value** visited = (Value**)malloc(5000 * sizeof(Value*));
     int visited_size = 0;
 
     build_topo(root, topo, &topo_size, visited, &visited_size);

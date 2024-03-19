@@ -261,13 +261,14 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
  *
  * @param arr Array of Value arrs to free
  */
-void freePtrArr(Value*** arr, int len, int* sizes) {
+void freePtrArr(Value*** arrs, int len) {
     for (int i = 0; i < len; i++) {
-        Value** curr_arr = arr[i];
+        Value** curr_arr = arrs[i];
         // Loop until NULL pointer encountered
-        for (int j = 0; j < sizes[i]; j++) {
+        for (int j = 0; curr_arr[j] != NULL; j++) {
             Value* curr_val = curr_arr[j];
-            free_value(curr_val);
+            cudaError_t err_c = cudaFree(curr_val->children);
+            cudaError_t err = cudaFree(curr_val);
         }
         cudaFree(curr_arr);
     } 
@@ -294,24 +295,24 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     Value** bias_ptrs[mlp->nlayers];
     Value** act_ptrs[mlp->nlayers];
 
-    int* sizes = (int*)malloc(mlp->nlayers * sizeof(int));
-
     for (int l = 0; l < mlp->nlayers; l++) {
         Layer* curr_layer = mlp->layers[l];
         // Total number of neurons in entire batch
         int total_neurons = curr_layer->nout * batch_size;
 
         // Allocate empty value arr for outputs
-        float initialSums[total_neurons];
-        memset(initialSums, 0.0, total_neurons * sizeof(float));
-        // Initialize sums to 0.0
-        Value** out = init_values(initialSums, total_neurons);
+        Value** out;
+        allocValueArr(&out, total_neurons + 1);
         // Allocate space for children of outputs
         for(int i = 0; i < total_neurons; i++) {
+            // Initialize sums to 0.0
+            out[i] = init_value(0);
             allocValueArr(&(out[i]->children), nin);
             out[i]->n_children = nin;
             out[i]->op = ADD;
         }
+        // Set last to NULL
+        out[total_neurons] = NULL;
 
         // Allocate array for prodcuts of inputs and weights
         Value** products;
@@ -326,19 +327,21 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
 
         // Allocate Values to store sum of output ands bias
         Value** biases;
-        allocValueArr(&biases, total_neurons);
+        allocValueArr(&biases, total_neurons + 1);
         for(int i = 0; i < total_neurons; i++) {
             biases[i] = init_value(0);
             allocValueArr(&(biases[i]->children), 2);
         }
+        biases[total_neurons] = NULL;
 
         // Allocate Value to store outputs activation function
         Value** activations;
-        allocValueArr(&activations, total_neurons);
+        allocValueArr(&activations, total_neurons + 1);
         for(int i = 0; i < total_neurons; i++) {
             activations[i] = init_value(0);
             allocValueArr(&(activations[i]->children), 1);
         }
+        activations[total_neurons] = NULL;
 
         // Grid dimensions: x for neurons in layer, y for batch size
         dim3 grid_size(curr_layer->nout, batch_size);
@@ -351,13 +354,11 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         // Next layers inputs are current layers outputs
         x = out;
 
-        // Add Value arrs to arrays to free
-        out_ptrs[l] = out;
+        // Add Value arrs to arrays to free    
         products_ptrs[l] = products;
         bias_ptrs[l] = biases;
         act_ptrs[l] = activations;
-        // Add to sizes array
-        sizes[l] = total_neurons;
+        out_ptrs[l] = out;
     }
     // Calculate loss for each output
     Value* total_loss = init_value(0.0);
@@ -384,24 +385,22 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     zero_grad(mlp);
 
     // Free products
-    for (int i = 0; i < mlp->nlayers; i++) {
-        //printf("I %d SIZE %d\n", i, sizes[i]);
-        Value** curr_arr = products_ptrs[i];
-        // Loop until NULL pointer encountered
-        for (int j = 0; curr_arr[j] != NULL; j++) {
-            Value* curr_val = curr_arr[j];
-            cudaFree(curr_val->children[1]);
-            cudaFree(curr_val);
-        }
-        cudaFree(curr_arr);
-    }
+    //for (int i = 0; i < mlp->nlayers; i++) {
+    //    Value** curr_arr = products_ptrs[i];
+    //    // Loop until NULL pointer encountered
+    //    for (int j = 0; curr_arr[j] != NULL; j++) {
+    //        Value* curr_val = curr_arr[j];
+    //        cudaFree(curr_val->children);
+    //        cudaFree(curr_val);
+    //    }
+    //    cudaFree(curr_arr);
+    //}
 
     // Free network from memory
-    freePtrArr(out_ptrs, mlp->nlayers, sizes);
-    freePtrArr(bias_ptrs, mlp->nlayers, sizes);
-    freePtrArr(act_ptrs, mlp->nlayers, sizes);  
-
-    free(sizes);
+    freePtrArr(products_ptrs, mlp->nlayers);
+    freePtrArr(out_ptrs, mlp->nlayers);
+    freePtrArr(bias_ptrs, mlp->nlayers);
+    freePtrArr(act_ptrs, mlp->nlayers);  
 
     return total_loss->val;
 }
