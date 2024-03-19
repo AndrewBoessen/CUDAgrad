@@ -134,7 +134,7 @@ To train, use stochastic gradient descent. In this example, the network is train
 
 #define EPOCHS 15
 #define BATCH_SIZE 10
-#define LEARNING_RATE 0.001
+#define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
 #define NUM_INPUTS 2
 #define NUM_OUTPUTS 1
@@ -180,50 +180,43 @@ int main() {
 
     MLP* mlp = init_mlp(sizes, nlayers);
 
+    // Batch data and ground truth
+    float* inputs = (float*)malloc(NUM_INPUTS * BATCH_SIZE * sizeof(float));
+    float* grnd_truth = (float*)malloc(NUM_OUTPUTS * BATCH_SIZE * sizeof(float));
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
-        // Variable learning rate
-        float lr = 0.01 - (0.009 * ((float)(i+1)/EPOCHS));
-
         float epoch_loss = 0.0;
+
+        // Variable learning rate
+        float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
 
         shuffle_entries(entries, DATA_SIZE);
         // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
-            // zero loss for batch
-            Value* total_loss = init_value(0.0);
             // starting index
             int starting_idx = j * BATCH_SIZE;
+            
             // Select next 10 unvisited datapoints in shuffled array
-            for (int n = starting_idx; n < starting_idx + BATCH_SIZE; n++) {
-                Entry curr_entry = entries[n];
-                // Alloc new input array
-                float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
-                Value** in = init_values(inputs, NUM_INPUTS);
+            for (int n = 0; n < BATCH_SIZE; n++) {
+                Entry curr_entry = entries[starting_idx + n];
+                // add to bath inputs
+                inputs[n * NUM_INPUTS] = curr_entry.x;
+                inputs[n * NUM_INPUTS + 1] = curr_entry.y;
+                
                 // Expected y
-                float outputs[NUM_OUTPUTS] = {curr_entry.label};
-                Value** gt = init_values(outputs, NUM_OUTPUTS);
-
-                // Forward pass for single datapoint
-                Value** out = mlp_forward(mlp, in, NUM_INPUTS);
-
-                // Calculate loss for single datapoint
-                Value* loss = mse_loss(out, gt, NUM_OUTPUTS);
-
-                total_loss = add(total_loss, loss);
+                grnd_truth[n * NUM_OUTPUTS] = curr_entry.label;
             }
-            // Do backprop on total loss of batch
-            backward(total_loss);
-            // Single step after batch
-            update_weights(mlp, lr);
-            // zero grads for next batch
-            zero_grad(mlp); 
+            Value** in = init_values(inputs, NUM_INPUTS * BATCH_SIZE);
+            Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
-            // Epoch loss
-            epoch_loss += total_loss->val;
+            // Train batch
+            float loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            // Add to epoch loss
+            epoch_loss += loss;
         }
-        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss/DATA_SIZE);
+        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / DATA_SIZE);
     }
 
     return EXIT_SUCCESS;
@@ -235,21 +228,21 @@ Output:
 ```
 Loaded 1000 entries from ./data/make_moons.csv
 Training for 15 Epochs with Batch Size 10
-EPOCH: 1 LOSS: 0.144856
-EPOCH: 2 LOSS: 0.029270
-EPOCH: 3 LOSS: 0.017946
-EPOCH: 4 LOSS: 0.015143
-EPOCH: 5 LOSS: 0.012307
-EPOCH: 6 LOSS: 0.011319
-EPOCH: 7 LOSS: 0.009980
-EPOCH: 8 LOSS: 0.009541
-EPOCH: 9 LOSS: 0.009046
-EPOCH: 10 LOSS: 0.008184
-EPOCH: 11 LOSS: 0.007889
-EPOCH: 12 LOSS: 0.007456
-EPOCH: 13 LOSS: 0.007199
-EPOCH: 14 LOSS: 0.006906
-EPOCH: 15 LOSS: 0.006717
+EPOCH: 1 LOSS: 0.100579
+EPOCH: 2 LOSS: 0.022574
+EPOCH: 3 LOSS: 0.017830
+EPOCH: 4 LOSS: 0.010749
+EPOCH: 5 LOSS: 0.008143
+EPOCH: 6 LOSS: 0.007001
+EPOCH: 7 LOSS: 0.006051
+EPOCH: 8 LOSS: 0.005420
+EPOCH: 9 LOSS: 0.005223
+EPOCH: 10 LOSS: 0.004741
+EPOCH: 11 LOSS: 0.004522
+EPOCH: 12 LOSS: 0.004374
+EPOCH: 13 LOSS: 0.004290
+EPOCH: 14 LOSS: 0.004149
+EPOCH: 15 LOSS: 0.004049
 ```
 
 ## License

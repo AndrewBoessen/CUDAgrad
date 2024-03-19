@@ -22,24 +22,22 @@ NN = nn_demo
 MOONS = moons_demo
 
 # Executable
-EXECUTABLE = $(NN) $(MOONS)
+EXECUTABLES = $(NN) $(MOONS)
 
 # Build rules
-all: $(EXECUTABLE)
+all: $(EXECUTABLES)
 
 $(NN): $(C_OBJECTS) $(CU_OBJECTS)
-	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(C_OBJECTS) -o $@
+	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(filter-out autograd/moons_demo.o,$(C_OBJECTS)) -o $@
 
 $(MOONS): $(C_OBJECTS) $(CU_OBJECTS)
-	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(C_OBJECTS) -o $@
+	$(NVCC) $(NVCCFLAGS) $(CU_OBJECTS) $(filter-out autograd/nn_demo.o,$(C_OBJECTS)) -o $@
 
-$(EXECUTABLE): %.o: %.c
+%.o: %.c
 	$(CC) $(CFLAGS) $(INC_DIRS) -c $< -o $@
 
 %.o: %.cu
 	$(NVCC) $(NVCCFLAGS) $(INC_DIRS) -c $< -o $@
 
 clean:
-	rm -f $(EXECUTABLE) $(C_OBJECTS) $(CU_OBJECTS)
-
-
+	rm -f $(EXECUTABLES) $(C_OBJECTS) $(CU_OBJECTS)
