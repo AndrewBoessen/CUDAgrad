@@ -58,7 +58,7 @@ void show_params(MLP* mlp);
 
 void zero_grad(MLP* mlp);
 
-float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size);
+Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size);
 
 void free_neuron(Neuron* neuron);
 

@@ -52,7 +52,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 5, 5, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 16, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -64,7 +64,7 @@ int main() {
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
-        float epoch_loss = 0.0;
+        int epoch_correct = 0;
 
         // Variable learning rate
         float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
@@ -89,11 +89,15 @@ int main() {
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
             // Train batch
-            float loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
-            // Add to epoch loss
-            epoch_loss += loss;
+            Value** output = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            // Calculate accuracy
+            for (int i = 0; i < BATCH_SIZE; i++) {
+                if (gt[i] - output[i] <= 0.02) {
+                    epoch_correct++;
+                }
+            }
         }
-        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / DATA_SIZE);
+        printf("EPOCH: %d ACCURACY: %f\n", i+1, (float)epoch_correct / DATA_SIZE);
     }
 
     return EXIT_SUCCESS;
