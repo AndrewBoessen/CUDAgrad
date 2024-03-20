@@ -120,12 +120,13 @@ Layer* init_layer(int nin, int nout, int nonlin) {
  *
  * @param layer Pointer to the layer.
  * @param x Array of input values for the layer.
- * @param out Array of values corresponding to output of layer.
+ * @param output Array of values for output of layer.
+ * @param sums Array of values corresponding to sums of products.
  * @param products Array of Values for products of inputs and weights.
  * @param biases Values to store sum of output ands bias
  * @param activations Values to store outputs activation function
  */
-__global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** products, Value** biases, Value** activations) {
+__global__ void layer_forward(Layer* layer, Value** x, Value** output, Value** sums, Value** products, Value** biases, Value** activations) {
     // Id of datapoint in batch
     int datapoint_id = blockIdx.y;
 
@@ -148,9 +149,9 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
     mul_dev(n->w[threadIdx.x], x[input_idx], prod);
 
     // Add product to children of neuron output
-    out[out_idx]->children[threadIdx.x] = prod;
+    sums[out_idx]->children[threadIdx.x] = prod;
     // Update neuron output value
-    atomicAdd(&(out[out_idx]->val), prod->val);
+    atomicAdd(&(sums[out_idx]->val), prod->val);
 
     // Wait for all thread to finish computing products
     __syncthreads();
@@ -159,16 +160,16 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
     // Only run if last thread in block
     if (threadIdx.x == blockDim.x - 1) {
         Value* sum = biases[out_idx];
-        add_dev(out[out_idx], n->b, sum);
+        add_dev(sums[out_idx], n->b, sum);
         
-        out[out_idx] = sum;
+        output[out_idx] = sum;
 
         if (n->nonlin) {
             // Activate with ReLU function if nonlin
             Value* relu_val = activations[out_idx];
-            relu_dev(out[out_idx], relu_val);
+            relu_dev(sums[out_idx], relu_val);
 
-            out[out_idx] = relu_val;
+            output[out_idx] = relu_val;
         }
     }
 }
@@ -206,16 +207,20 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
     for (int i = 0; i < mlp->nlayers; i++) {
         Layer* curr_layer = mlp->layers[i];
 
+        // Init empty output arr
+        Value** outputs;
+        cudaMallocManaged(&outputs, curr_layer->nout * sizeof(Value*));
+
         // Allocate empty value arr for outputs
         float initialSums[curr_layer->nout];
         memset(initialSums, 0.0, curr_layer->nout * sizeof(float));
         // Initialize sums to 0.0
-        Value** out = init_values(initialSums, curr_layer->nout);
+        Value** sums = init_values(initialSums, curr_layer->nout);
         // Allocate space for children of outputs
         for(int i = 0; i < curr_layer->nout; i++) {
-            allocValueArr(&(out[i]->children), nin);
-            out[i]->n_children = nin;
-            out[i]->op = ADD;
+            allocValueArr(&(sums[i]->children), nin);
+            sums[i]->n_children = nin;
+            sums[i]->op = ADD;
         }
 
         // Allocate array for prodcuts of inputs and weights
@@ -245,13 +250,13 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
 
         // Grid size: single datapoint so y is 1
         dim3 grid_size(curr_layer->nout, 1);
-        layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products, biases, activations);
+        layer_forward<<<grid_size, nin>>>(curr_layer, x, outputs, sums, products, biases, activations);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs
         nin = curr_layer->nout;
         // Next layers inputs are current layers outputs
-        x = out;
+        x = outputs;
     }
     return x;
 }
@@ -290,29 +295,34 @@ void freePtrArr(Value*** arrs, int len) {
  */
 float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
     // Arrays for storing Value arrays to later be freed
-    Value** out_ptrs[mlp->nlayers];
     Value** products_ptrs[mlp->nlayers];
     Value** bias_ptrs[mlp->nlayers];
     Value** act_ptrs[mlp->nlayers];
+    Value** sums_ptrs[mlp->nlayers];
 
     for (int l = 0; l < mlp->nlayers; l++) {
+        
         Layer* curr_layer = mlp->layers[l];
         // Total number of neurons in entire batch
         int total_neurons = curr_layer->nout * batch_size;
 
-        // Allocate empty value arr for outputs
-        Value** out;
-        allocValueArr(&out, total_neurons + 1);
+        // Init empty output arr
+        Value** outputs;
+        cudaMallocManaged(&outputs, total_neurons * sizeof(Value*));
+
+        // Allocate empty value arr for sums of products
+        Value** sums;
+        allocValueArr(&sums, total_neurons + 1);
         // Allocate space for children of outputs
         for(int i = 0; i < total_neurons; i++) {
             // Initialize sums to 0.0
-            out[i] = init_value(0);
-            allocValueArr(&(out[i]->children), nin);
-            out[i]->n_children = nin;
-            out[i]->op = ADD;
+            sums[i] = init_value(0);
+            allocValueArr(&(sums[i]->children), nin);
+            sums[i]->n_children = nin;
+            sums[i]->op = ADD;
         }
         // Set last to NULL
-        out[total_neurons] = NULL;
+        sums[total_neurons] = NULL;
 
         // Allocate array for prodcuts of inputs and weights
         Value** products;
@@ -345,20 +355,20 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
 
         // Grid dimensions: x for neurons in layer, y for batch size
         dim3 grid_size(curr_layer->nout, batch_size);
-        layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products, biases, activations);
+        layer_forward<<<grid_size, nin>>>(curr_layer, x, outputs, sums, products, biases, activations);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
 
         // Number of next inputs are number of current outputs
         nin = curr_layer->nout;
         // Next layers inputs are current layers outputs
-        x = out;
+        x = outputs;
 
         // Add Value arrs to arrays to free    
         products_ptrs[l] = products;
         bias_ptrs[l] = biases;
         act_ptrs[l] = activations;
-        out_ptrs[l] = out;
+        sums_ptrs[l] = sums;
     }
     // Calculate loss for each output
     Value* total_loss = init_value(0.0);
@@ -384,21 +394,9 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     // zero grads before next batch
     zero_grad(mlp);
 
-    // Free products
-    //for (int i = 0; i < mlp->nlayers; i++) {
-    //    Value** curr_arr = products_ptrs[i];
-    //    // Loop until NULL pointer encountered
-    //    for (int j = 0; curr_arr[j] != NULL; j++) {
-    //        Value* curr_val = curr_arr[j];
-    //        cudaFree(curr_val->children);
-    //        cudaFree(curr_val);
-    //    }
-    //    cudaFree(curr_arr);
-    //}
-
     // Free network from memory
     freePtrArr(products_ptrs, mlp->nlayers);
-    freePtrArr(out_ptrs, mlp->nlayers);
+    freePtrArr(sums_ptrs, mlp->nlayers);
     freePtrArr(bias_ptrs, mlp->nlayers);
     freePtrArr(act_ptrs, mlp->nlayers);  
 
