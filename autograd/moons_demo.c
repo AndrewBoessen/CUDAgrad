@@ -10,7 +10,7 @@
 #include "data.h"
 
 #define EPOCHS 15
-#define BATCH_SIZE 10
+#define BATCH_SIZE 5
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
 #define NUM_INPUTS 2
@@ -52,7 +52,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 5, 10, 5, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -95,6 +95,8 @@ int main() {
         }
         printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / DATA_SIZE);
     }
+    show_params(mlp);
+    free_mlp(mlp);
 
     return EXIT_SUCCESS;
 }
