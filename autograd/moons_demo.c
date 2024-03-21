@@ -13,6 +13,8 @@
 #define BATCH_SIZE 32
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
+#define TRAIN_SIZE 900
+#define TEST_SIZE 100
 #define NUM_INPUTS 2
 #define NUM_OUTPUTS 1
 
@@ -61,17 +63,21 @@ int main() {
     float* inputs = (float*)malloc(NUM_INPUTS * BATCH_SIZE * sizeof(float));
     float* grnd_truth = (float*)malloc(NUM_OUTPUTS * BATCH_SIZE * sizeof(float));
 
+    // Shuffle entries before taking training dataset
+    shuffle_entries(entries, DATA_SIZE);
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
-        int epoch_correct = 0;
+        float epoch_loss = 0.0;
 
         // Variable learning rate
         float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
 
-        shuffle_entries(entries, DATA_SIZE);
+        // Only train on training set
+        shuffle_entries(entries, TRAIN_SIZE);
         // SGD - calculate loss for a batch of 10 data points
-        for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
+        for (int j = 0; j < DATA_SIZE / TRAIN_SIZE; j++) {
             // starting index
             int starting_idx = j * BATCH_SIZE;
             
@@ -89,15 +95,25 @@ int main() {
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
             // Train batch
-            Value** output = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
-            // Calculate accuracy
-            for (int i = 0; i < BATCH_SIZE; i++) {
-                if (gt[i] - output[i] <= 0.02) {
-                    epoch_correct++;
-                }
+            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            // Add to epoch loss
+            epoch_loss += batch_loss;
+        }
+        // Evaluate Accuracy
+        int correct = 0;
+        for (int i = 0;i < TRAIN_SIZE; i++){
+            Entry curr_entry = entries[TRAIN_SIZE + i];
+            float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
+            Value** curr_in = init_values(inputs, NUM_INPUTS);
+            Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
+            // Calculate Accracy against ground truth
+            float predicted_val = out[0]->val >= 0.9 ? 1.0 : 0.0;
+            if (predicted_val == curr_entry.label) {
+                correct++;
             }
         }
-        printf("EPOCH: %d ACCURACY: %f\n", i+1, (float)epoch_correct / DATA_SIZE);
+
+        printf("EPOCH: %d LOSS: %f ACCURACY: %.2f\n", i+1, epoch_loss / TRAIN_SIZE, (float)correct / TRAIN_SIZE);
     }
 
     return EXIT_SUCCESS;

@@ -206,53 +206,42 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
     for (int i = 0; i < mlp->nlayers; i++) {
         Layer* curr_layer = mlp->layers[i];
 
-        // Total number of neurons in entire batch
-        int total_neurons = curr_layer->nout;
-
         // Allocate empty value arr for outputs
-        Value** out;
-        allocValueArr(&out, total_neurons + 1);
+        float initialSums[curr_layer->nout];
+        memset(initialSums, 0.0, curr_layer->nout * sizeof(float));
+        // Initialize sums to 0.0
+        Value** out = init_values(initialSums, curr_layer->nout);
         // Allocate space for children of outputs
-        for(int i = 0; i < total_neurons; i++) {
-            out[i] = init_value(0.0);
+        for(int i = 0; i < curr_layer->nout; i++) {
             allocValueArr(&(out[i]->children), nin);
             out[i]->n_children = nin;
             out[i]->op = ADD;
         }
-        out[total_neurons] = NULL;
-        // Copy outputs to array for freeing later
-        Value** sums;
-        cudaMallocManaged(&sums, (total_neurons + 1) * sizeof(Value*));
-        cudaMemcpy(sums, out, (total_neurons + 1) * sizeof(Value*), cudaMemcpyDefault);
 
         // Allocate array for prodcuts of inputs and weights
         Value** products;
-        allocValueArr(&products, nin * total_neurons + 1);
+        allocValueArr(&products, nin * curr_layer->nout);
         // Allocate space for products children
-        for(int i = 0; i < nin * total_neurons; i++) {
+        for(int i = 0; i < nin * curr_layer->nout; i++) {
             products[i] = init_value(0);
             allocValueArr(&(products[i]->children), 2);
         }
-        // Set last value to NULL
-        products[nin * total_neurons] = NULL;
 
         // Allocate Values to store sum of output ands bias
         Value** biases;
-        allocValueArr(&biases, total_neurons + 1);
-        for(int i = 0; i < total_neurons; i++) {
+        allocValueArr(&biases, curr_layer->nout);
+        for(int i = 0; i < curr_layer->nout; i++) {
             biases[i] = init_value(0);
             allocValueArr(&(biases[i]->children), 2);
         }
-        biases[total_neurons] = NULL;
 
         // Allocate Value to store outputs activation function
         Value** activations;
-        allocValueArr(&activations, total_neurons + 1);
-        for(int i = 0; i < total_neurons; i++) {
+        allocValueArr(&activations, curr_layer->nout);
+        for(int i = 0; i < curr_layer->nout; i++) {
             activations[i] = init_value(0);
             allocValueArr(&(activations[i]->children), 1);
         }
-        activations[total_neurons] = NULL;
 
         // Grid size: single datapoint so y is 1
         dim3 grid_size(curr_layer->nout, 1);
@@ -299,7 +288,7 @@ void freePtrArr(Value*** arrs, int len) {
  * @param batch_size number of datapoints in batch
  * @return Total loss of entire batch
  */
-Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
+float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size){
     // Arrays for storing Value arrays to later be freed
     Value** products_ptrs[mlp->nlayers];
     Value** bias_ptrs[mlp->nlayers];
@@ -402,7 +391,7 @@ Value** train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_
     freePtrArr(bias_ptrs, mlp->nlayers);
     freePtrArr(act_ptrs, mlp->nlayers);
 
-    return x;
+    return total_loss->val;
 }
 
 /**
