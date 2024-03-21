@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "nn.h"
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 50
-#define BATCH_SIZE 32
+#define EPOCHS 15
+#define BATCH_SIZE 10
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
 #define TRAIN_SIZE 900
@@ -54,7 +55,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 16, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -77,7 +78,7 @@ int main() {
         // Only train on training set
         shuffle_entries(entries, TRAIN_SIZE);
         // SGD - calculate loss for a batch of 10 data points
-        for (int j = 0; j < DATA_SIZE / TRAIN_SIZE; j++) {
+        for (int j = 0; j < TRAIN_SIZE / BATCH_SIZE; j++) {
             // starting index
             int starting_idx = j * BATCH_SIZE;
             
@@ -101,19 +102,18 @@ int main() {
         }
         // Evaluate Accuracy
         int correct = 0;
-        for (int i = 0;i < TRAIN_SIZE; i++){
+        for (int i = 0; i < TEST_SIZE; i++){
             Entry curr_entry = entries[TRAIN_SIZE + i];
             float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
             Value** curr_in = init_values(inputs, NUM_INPUTS);
             Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
             // Calculate Accracy against ground truth
-            float predicted_val = out[0]->val >= 0.9 ? 1.0 : 0.0;
-            if (predicted_val == curr_entry.label) {
+            if (pow((curr_entry.label - out[0]->val),2) <= 0.05) {
                 correct++;
             }
         }
 
-        printf("EPOCH: %d LOSS: %f ACCURACY: %.2f\n", i+1, epoch_loss / TRAIN_SIZE, (float)correct / TRAIN_SIZE);
+        printf("EPOCH: %d LOSS: %f ACCURACY: %.d%%\n", i+1, epoch_loss / TRAIN_SIZE, 100 * correct / TEST_SIZE);
     }
 
     return EXIT_SUCCESS;
