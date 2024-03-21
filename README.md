@@ -127,6 +127,7 @@ To train, use stochastic gradient descent. In this example, the network is train
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "nn.h"
 #include "engine.h"
@@ -136,6 +137,8 @@ To train, use stochastic gradient descent. In this example, the network is train
 #define BATCH_SIZE 10
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
+#define TRAIN_SIZE 900
+#define TEST_SIZE 100
 #define NUM_INPUTS 2
 #define NUM_OUTPUTS 1
 
@@ -184,6 +187,9 @@ int main() {
     float* inputs = (float*)malloc(NUM_INPUTS * BATCH_SIZE * sizeof(float));
     float* grnd_truth = (float*)malloc(NUM_OUTPUTS * BATCH_SIZE * sizeof(float));
 
+    // Shuffle entries before taking training dataset
+    shuffle_entries(entries, DATA_SIZE);
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
@@ -192,9 +198,10 @@ int main() {
         // Variable learning rate
         float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
 
-        shuffle_entries(entries, DATA_SIZE);
+        // Only train on training set
+        shuffle_entries(entries, TRAIN_SIZE);
         // SGD - calculate loss for a batch of 10 data points
-        for (int j = 0; j < DATA_SIZE / BATCH_SIZE; j++) {
+        for (int j = 0; j < TRAIN_SIZE / BATCH_SIZE; j++) {
             // starting index
             int starting_idx = j * BATCH_SIZE;
             
@@ -212,11 +219,24 @@ int main() {
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
             // Train batch
-            float loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
             // Add to epoch loss
-            epoch_loss += loss;
+            epoch_loss += batch_loss;
         }
-        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / DATA_SIZE);
+        // Evaluate Accuracy
+        int correct = 0;
+        for (int i = 0; i < TEST_SIZE; i++){
+            Entry curr_entry = entries[TRAIN_SIZE + i];
+            float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
+            Value** curr_in = init_values(inputs, NUM_INPUTS);
+            Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
+            // Calculate Accracy against ground truth
+            if (pow((curr_entry.label - out[0]->val),2) <= 0.05) {
+                correct++;
+            }
+        }
+
+        printf("EPOCH: %d LOSS: %f ACCURACY: %.d%%\n", i+1, epoch_loss / TRAIN_SIZE, 100 * correct / TEST_SIZE);
     }
 
     return EXIT_SUCCESS;
@@ -228,21 +248,21 @@ Output:
 ```
 Loaded 1000 entries from ./data/make_moons.csv
 Training for 15 Epochs with Batch Size 10
-EPOCH: 1 LOSS: 0.100579
-EPOCH: 2 LOSS: 0.022574
-EPOCH: 3 LOSS: 0.017830
-EPOCH: 4 LOSS: 0.010749
-EPOCH: 5 LOSS: 0.008143
-EPOCH: 6 LOSS: 0.007001
-EPOCH: 7 LOSS: 0.006051
-EPOCH: 8 LOSS: 0.005420
-EPOCH: 9 LOSS: 0.005223
-EPOCH: 10 LOSS: 0.004741
-EPOCH: 11 LOSS: 0.004522
-EPOCH: 12 LOSS: 0.004374
-EPOCH: 13 LOSS: 0.004290
-EPOCH: 14 LOSS: 0.004149
-EPOCH: 15 LOSS: 0.004049
+EPOCH: 1 LOSS: 0.131302 ACCURACY: 77%
+EPOCH: 2 LOSS: 0.037822 ACCURACY: 88%
+EPOCH: 3 LOSS: 0.023058 ACCURACY: 86%
+EPOCH: 4 LOSS: 0.017193 ACCURACY: 91%
+EPOCH: 5 LOSS: 0.013649 ACCURACY: 90%
+EPOCH: 6 LOSS: 0.011691 ACCURACY: 92%
+EPOCH: 7 LOSS: 0.010117 ACCURACY: 93%
+EPOCH: 8 LOSS: 0.009106 ACCURACY: 94%
+EPOCH: 9 LOSS: 0.008352 ACCURACY: 94%
+EPOCH: 10 LOSS: 0.007866 ACCURACY: 94%
+EPOCH: 11 LOSS: 0.007642 ACCURACY: 94%
+EPOCH: 12 LOSS: 0.007186 ACCURACY: 93%
+EPOCH: 13 LOSS: 0.006931 ACCURACY: 93%
+EPOCH: 14 LOSS: 0.006856 ACCURACY: 94%
+EPOCH: 15 LOSS: 0.006664 ACCURACY: 96%
 ```
 
 ## License
