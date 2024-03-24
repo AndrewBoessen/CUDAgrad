@@ -48,16 +48,6 @@ Value* init_value(float x);
 Value** init_values(float* arr, size_t len);
 
 /**
- * This helper function allocates new memory for a specified amout of Values.
- */
-void allocValue(Value** v, size_t num);
-
-/**
- * This helper function allocates new memory for an array of Values.
- */
-void allocValueArr(Value*** ptr, size_t len);
-
-/**
  * This function takes two values and returns a new Value object with the sum of the two inputs
  */
 Value* add(Value* a, Value* b);

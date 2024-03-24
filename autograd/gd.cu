@@ -38,36 +38,6 @@ void printCudaInfo()
 }
 
 /**
- * This helper function allocates new memory for a specified amout of Values.
- *
- * @param v (return paramter) The pointer to the start of the Values in memory
- * @param num Number of values to allocate
- */
-void allocValue(Value** v, size_t num) {
-    cudaError_t err = cudaMallocManaged(v, num * sizeof(Value));
-    if (err != cudaSuccess) {
-        fprintf(stderr, "cudaMallocManaged failed while allocating Value: %s\n", cudaGetErrorString(err));
-        // Handle the error appropriately
-        exit(1);
-    }
-}
-
-/**
- * This helper function allocates new memory for an array of Values.
- *
- * @param prt (return parameter) Pointer to start of list of Values
- * @param len Length of array of Value
- */
-void allocValueArr(Value*** ptr, size_t len) {
-    cudaError_t err = cudaMallocManaged(ptr, len * sizeof(Value*));
-    if (err != cudaSuccess) {
-        fprintf(stderr, "cudaMallocManaged failed while allocating array of Values: %s\n", cudaGetErrorString(err));
-        // Handle the error appropriately
-        exit(1);
-    }
-}
-
-/**
  * Function to calculate gradient of Value object that is a sum
  * 
  * Computes gradient with respect to the operands
