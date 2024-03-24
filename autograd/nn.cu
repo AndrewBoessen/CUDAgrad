@@ -203,13 +203,14 @@ MLP* init_mlp(int* sizes, int nlayers) {
  * @return Array of output values from the final layer of the MLP.
  */
 Value** mlp_forward(MLP* mlp, Value** in, int nin) {
-    // Cpoy input array to device
+    // Copy input array to device
     Value** x;
     cudaMalloc(&x, nin * sizeof(Value*));
     for (int i = 0; i < nin; i++) {
         cudaMalloc(&x[i], sizeof(Value));
         cudaMemcpy(&x[i], in[i], sizeof(Value), cudaMemcpyDeviceToHost);
     }
+
     for (int i = 0; i < mlp->nlayers; i++) {
         Layer* curr_layer = mlp->layers[i];
 
@@ -238,7 +239,13 @@ Value** mlp_forward(MLP* mlp, Value** in, int nin) {
         // Next layers inputs are current layers outputs
         x = out;
     }
-    return x;
+    
+    // Copy outputs to host
+    Value** out= (Value**)malloc(nin * sizeof(Value*));
+    for (int i = 0; i < nin; i++) {
+        cudaMemcpy(&out[i], &x[i], sizeof(Value), cudaMemcpyDeviceToHost);
+    }
+    return out;
 }
 
 /**

@@ -21,10 +21,8 @@ int main() {
     //show_params(mlp);
 
     // Allocate inputs
-    Value** in = malloc(n_inputs * sizeof(Value*));
-    // Set inputs
-    in[0] = init_value(1.5);
-    in[1] = init_value(3.0);
+    float inputs[2] = {1.5, 3.0};
+    Value** in = init_values(inputs, 2);
 
     Value** out = mlp_forward(mlp, in, n_inputs);
     
