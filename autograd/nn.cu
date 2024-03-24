@@ -188,7 +188,8 @@ MLP* init_mlp(int* sizes, int nlayers) {
     cudaMalloc(&(mlp->layers), (nlayers - 1) * sizeof(Layer*));
     for (int i = 0; i < nlayers - 1; i++) {
         int nonlin = (i != nlayers - 2);  // nonlinearity for all layers except the last one
-        mlp->layers[i] = init_layer(sizes[i], sizes[i+1], nonlin);
+        Layer* l = init_layer(sizes[i], sizes[i+1], nonlin);
+        cudaMemcpy(&mlp->layers[i], &l, sizeof(Layer*), cudaMemcpyDeviceToDevice);
     }
     mlp->nlayers = nlayers - 1;
     return mlp;
@@ -239,7 +240,7 @@ Value** mlp_forward(MLP* mlp, Value** in, int nin) {
         // Next layers inputs are current layers outputs
         x = out;
     }
-    
+
     // Copy outputs to host
     Value** out= (Value**)malloc(nin * sizeof(Value*));
     for (int i = 0; i < nin; i++) {
