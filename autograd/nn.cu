@@ -183,7 +183,13 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 MLP* init_mlp(int* sizes, int nlayers) {
     // Allocate memory for MLP
     MLP* mlp;
-    cudaMalloc(&mlp, sizeof(MLP));
+    cudaError_t err = cudaMalloc(&mlp, sizeof(MLP));
+    if (err != cudaSuccess) {
+        printf("Cuda malloc failed wile allocating mlp");
+        exit(1);
+    }
+    // Set nlayers of mlp
+    cudaMemcpy(&mlp->nlayers, &nlayers, sizeof(int), cudaMemcpyHostToDevice);
     // Allocate space for layers in MLP
     cudaMalloc(&(mlp->layers), (nlayers - 1) * sizeof(Layer*));
     for (int i = 0; i < nlayers - 1; i++) {
