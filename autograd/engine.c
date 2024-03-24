@@ -17,8 +17,7 @@
  * @return A pointer to the newly created Value object.
  */
 Value* init_value(float x) {
-    Value* v;
-    allocValue(&v, 1);
+    Value* v = malloc(sizeof(Value*));
     v->val = x;
     v->grad = 0;
     v->children = NULL;
@@ -35,8 +34,7 @@ Value* init_value(float x) {
  */
  Value** init_values(float* arr, size_t len) {
     // Allocate memory for Values
-    Value** values;
-    allocValueArr(&values, len);
+    Value** values = malloc(len * sizeof(Value*));
 
     if (values == NULL) {
         perror("Memory allocation for values failed");
@@ -58,12 +56,11 @@ Value* init_value(float x) {
  * @return A pointer to the new Value object representing the sum.
  */
 Value* add(Value* a, Value* b) {
-   Value* out;
-   allocValue(&out, 1);
+   Value* out = malloc(sizeof(Value*));
    out->val = a->val + b->val;
    out->grad = 0;
    // Allocate memory for children
-   allocValueArr(&(out->children), 2);
+   out->children = malloc(2 * sizeof(Value*));
    // Set children to pointers of a and b
    out->children[0] = a;
    out->children[1] = b;
@@ -80,12 +77,11 @@ Value* add(Value* a, Value* b) {
  * @return A pointer to the new Value object representing the difference.
  */
 Value* sub(Value* a, Value* b) {
-    Value* out;
-    allocValue(&out, 1);
+    Value* out = malloc(sizeof(Value*));
     out->val = a->val - b->val;
     out->grad = 0;
     // Allocate memory for children
-    allocValueArr(&(out->children), 2);
+    out->children = malloc(2 * sizeof(Value*));
     // Set children
     out->children[0] = a;
     out->children[1] = b;
@@ -102,12 +98,11 @@ Value* sub(Value* a, Value* b) {
  * @return A pointer to the new Value object representing the product.
  */
 Value* mul(Value* a, Value* b) {
-    Value* out;
-    allocValue(&out, 1);
+    Value* out = malloc(sizeof(Value*));
     out->val = a->val * b->val;
     out->grad = 0;
     // Allocate memory for children
-    allocValueArr(&(out->children), 2);
+    out->children = malloc(2 * sizeof(Value*));
     // Set children
     out->children[0] = a;
     out->children[1] = b;
@@ -129,12 +124,11 @@ Value* divide(Value* a, Value* b) {
         exit(1);
     }
 
-    Value* out;
-    allocValue(&out, 1);
+    Value* out = malloc(sizeof(Value*));
     out->val = a->val / b->val;
     out->grad = 0;
     // allocate children array
-    allocValueArr(&(out->children), 2);
+    out->children = malloc(2 * sizeof(Value*));
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
@@ -151,11 +145,10 @@ Value* divide(Value* a, Value* b) {
  * @return A pointer to the new Value object representing the power result.
  */
 Value* power(Value* a, Value* b) {
-    Value* out;
-    allocValue(&out, 1);
+    Value* out = malloc(sizeof(Value*));
     out->val = pow(a->val, b->val);
     out->grad = 0;
-    allocValueArr(&(out->children), 2);
+    out->children = malloc(2 * sizeof(Value*));
     out->children[0] = a;
     out->children[1] = b;
     out->n_children = 2;
@@ -172,11 +165,10 @@ Value* power(Value* a, Value* b) {
  * @return A pointer to the new Value object representing the Leaky ReLU activation.
  */
 Value* relu(Value* a) {
-    Value* out;
-    allocValue(&out, 1);
+    Value* out = malloc(sizeof(Value*));
     out->val = (a->val < 0) ? 0: a->val;
     out->grad = 0;
-    allocValueArr(&(out->children), 1);
+    out->children = malloc(2 * sizeof(Value*));
     out->children[0] = a;
     out->n_children = 1;
     out->op = RELU;

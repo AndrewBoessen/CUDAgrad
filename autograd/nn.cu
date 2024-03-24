@@ -47,10 +47,9 @@ __device__ void relu_dev(Value* out, Value* v) {
  * This helper function allocates new memory for a specified amount of Neurons.
  *
  * @param n (return parameter) The pointer to the start of the Neurons in memory
- * @param num Number of neurons to allocate
  */
-void allocNeuron(Neuron** n, size_t num) {
-    cudaError_t err = cudaMallocManaged(n, num * sizeof(Neuron));
+void allocNeuron(Neuron** n) {
+    cudaError_t err = cudaMalloc(n, sizeof(Neuron));
     if (err != cudaSuccess) {
         fprintf(stderr, "cudaMallocManaged failed while allocating Neuron: %s\n", cudaGetErrorString(err));
         // Handle the error appropriately
@@ -65,7 +64,7 @@ void allocNeuron(Neuron** n, size_t num) {
  * @param len Length of array of Neurons
  */
 void allocNeuronArr(Neuron*** ptr, size_t len) {
-    cudaError_t err = cudaMallocManaged(ptr, len * sizeof(Neuron*));
+    cudaError_t err = cudaMalloc(ptr, len * sizeof(Neuron*));
     if (err != cudaSuccess) {
         fprintf(stderr, "cudaMallocManaged failed while allocating array of Neurons: %s\n", cudaGetErrorString(err));
         // Handle the error appropriately
@@ -82,14 +81,15 @@ void allocNeuronArr(Neuron*** ptr, size_t len) {
  */
 Neuron* init_neuron(int nin, int nonlin) {
     Neuron* neuron;
-    allocNeuron(&neuron, 1);
-    allocValueArr(&(neuron->w), nin);
+    allocNeuron(&neuron);
+    cudaMalloc(&(neuron->w), nin);
     for (int i = 0; i < nin; i++) {
-        neuron->w[i] = init_value((rand() % 2000 - 1000) / 1000.0);  // random values between -1 and 1
+        // random values between -1 and 1
+        cudaMemcpy(neuron->w[i], init_value((rand() % 2000 - 1000) / 1000.0), sizeof(Value), cudaMemcpyHostToDevice);
     }
-    neuron->b = init_value(0);
-    neuron->nin = nin;
-    neuron->nonlin = nonlin;
+    cudaMemcpy(&neuron->b, init_value(0), sizeof(Value), cudaMemcpyHostToDevice);
+    cudaMemcpy(&neuron->nin, &nin, sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(&neuron->nonlin, &nonlin, sizeof(int), cudaMemcpyHostToDevice);;
     return neuron;
 }
 
@@ -104,14 +104,14 @@ Neuron* init_neuron(int nin, int nonlin) {
 Layer* init_layer(int nin, int nout, int nonlin) {
     Layer* layer;
     // Allocate one layer in memory
-    cudaMallocManaged(&layer, sizeof(Layer));
+    cudaMalloc(&layer, sizeof(Layer));
     // Allocate neurons that make up layer
     allocNeuronArr(&(layer->neurons), nout);
     for (int i = 0; i < nout; i++) {
         // Init neurons
-        layer->neurons[i] = init_neuron(nin, nonlin);
+        cudaMemcpy(layer->neurons[i], init_neuron(nin, nonlin), sizeof(Neuron), cudaMemcpyDeviceToDevice);
     }
-    layer->nout = nout;
+    cudaMemcpy(&layer->nout, &nout, sizeof(int), cudaMemcpyHostToDevice);
     return layer;
 }
 
@@ -206,46 +206,24 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
     for (int i = 0; i < mlp->nlayers; i++) {
         Layer* curr_layer = mlp->layers[i];
 
-        // Allocate empty value arr for outputs
-        float initialSums[curr_layer->nout];
-        memset(initialSums, 0.0, curr_layer->nout * sizeof(float));
-        // Initialize sums to 0.0
-        Value** out = init_values(initialSums, curr_layer->nout);
-        // Allocate space for children of outputs
-        for(int i = 0; i < curr_layer->nout; i++) {
-            allocValueArr(&(out[i]->children), nin);
-            out[i]->n_children = nin;
-            out[i]->op = ADD;
+        int curr_layer_out;
+        cudaMemcpy(&curr_layer_out, &curr_layer->nout, sizeof(int), cudaMemcpyDeviceToHost);
+
+        Value** out;
+        cudaMalloc(&out, curr_layer_out * sizeof(Value*));
+        for(int i = 0; i < curr_layer_out; i++) {
+            cudaMalloc(&out[i]->children, nin * sizeof(Value*));
         }
 
-        // Allocate array for prodcuts of inputs and weights
         Value** products;
-        allocValueArr(&products, nin * curr_layer->nout);
-        // Allocate space for products children
-        for(int i = 0; i < nin * curr_layer->nout; i++) {
-            products[i] = init_value(0);
-            allocValueArr(&(products[i]->children), 2);
-        }
-
-        // Allocate Values to store sum of output ands bias
-        Value** biases;
-        allocValueArr(&biases, curr_layer->nout);
-        for(int i = 0; i < curr_layer->nout; i++) {
-            biases[i] = init_value(0);
-            allocValueArr(&(biases[i]->children), 2);
-        }
-
-        // Allocate Value to store outputs activation function
-        Value** activations;
-        allocValueArr(&activations, curr_layer->nout);
-        for(int i = 0; i < curr_layer->nout; i++) {
-            activations[i] = init_value(0);
-            allocValueArr(&(activations[i]->children), 1);
+        cudaMalloc(&products, nin * curr_layer_out * sizeof(Value*));
+        for(int i = 0; i < nin * curr_layer_out; i++) {
+            cudaMalloc(&out[i]->children, 2 * sizeof(Value*));
         }
 
         // Grid size: single datapoint so y is 1
         dim3 grid_size(curr_layer->nout, 1);
-        layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products, biases, activations);
+        layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products, out, out);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
         // Number of next inputs are number of current outputs
@@ -538,7 +516,7 @@ void show_params(MLP* mlp){
             }
         }
     }
-        printf("\n\n");
+    printf("\n\n");
 }
 
 /**
