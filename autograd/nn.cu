@@ -189,15 +189,15 @@ MLP* init_mlp(int* sizes, int nlayers) {
         exit(1);
     }
     // Set nlayers of mlp
+    nlayers -= 1;
     cudaMemcpy(&mlp->nlayers, &nlayers, sizeof(int), cudaMemcpyHostToDevice);
     // Allocate space for layers in MLP
-    cudaMalloc(&(mlp->layers), (nlayers - 1) * sizeof(Layer*));
-    for (int i = 0; i < nlayers - 1; i++) {
-        int nonlin = (i != nlayers - 2);  // nonlinearity for all layers except the last one
+    cudaMalloc(&(mlp->layers), nlayers * sizeof(Layer*));
+    for (int i = 0; i < nlayers; i++) {
+        int nonlin = (i != nlayers - 1);  // nonlinearity for all layers except the last one
         Layer* l = init_layer(sizes[i], sizes[i+1], nonlin);
         cudaMemcpy(&mlp->layers[i], &l, sizeof(Layer*), cudaMemcpyDeviceToDevice);
     }
-    mlp->nlayers = nlayers - 1;
     return mlp;
 }
 
