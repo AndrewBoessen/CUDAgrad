@@ -22,7 +22,7 @@ NN = nn_demo
 MOONS = moons_demo
 
 # Executable
-EXECUTABLES = $(NN) $(MOONS)
+EXECUTABLES = $(NN)
 
 # Build rules
 all: $(EXECUTABLES)
