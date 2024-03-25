@@ -67,6 +67,36 @@ int main() {
     // Shuffle entries before taking training dataset
     shuffle_entries(entries, DATA_SIZE);
 
+    int total_neurons = 0;
+    int total_params = 0;
+    for (int i = 1; i < nlayers; i++) {
+        total_neurons += sizes[i];
+        total_params += sizes[i-1] * sizes[i];
+    }
+    // Allocate empty value arr for outputs
+    Value** out;
+    allocValueArr(&out, BATCH_SIZE * total_neurons);
+    // Allocate space for children of outputs
+    int j = 0;
+    for (int i = 0; i < nlayers - 1; i++) {
+        int curr_size = sizes[i];
+        for (int k = 0; k < curr_size * BATCH_SIZE; k++, j++) {
+            out[j] = init_value(0.0);
+            allocValueArr(&out[j]->children, curr_size + 1);
+            out[j]->n_children = curr_size + 1;
+            out[j]->op = ADD;
+        }
+    }
+    
+    // Allocate array for prodcuts of inputs and weights
+    Value** products;
+    allocValueArr(&products, BATCH_SIZE * total_params);
+    // Allocate space for products children
+    for(int i = 0; i < BATCH_SIZE * total_params; i++) {
+        products[i] = init_value(0);
+        allocValueArr(&(products[i]->children), 2);
+    }
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
@@ -77,6 +107,7 @@ int main() {
 
         // Only train on training set
         shuffle_entries(entries, TRAIN_SIZE);
+
         // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < TRAIN_SIZE / BATCH_SIZE; j++) {
             // starting index
@@ -96,7 +127,7 @@ int main() {
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
 
             // Train batch
-            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE, products, out);
             // Add to epoch loss
             epoch_loss += batch_loss;
         }

@@ -52,13 +52,13 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin);
 
 Value* mse_loss(Value** y_pred, Value** y_true, int size);
 
-void update_weights(MLP* mlp, float lr);
+void update_weights(MLP* mlp, float lr, int batch_size);
 
 void show_params(MLP* mlp);
 
 void zero_grad(MLP* mlp);
 
-float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size);
+float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size, Value** products, Value** out);
 
 void free_neuron(Neuron* neuron);
 
