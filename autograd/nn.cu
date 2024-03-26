@@ -126,6 +126,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Set paramters of product
     Value* prod = products[prod_idx];
+    prod->grad = 0;
     mul_dev(n->w[threadIdx.x], x[input_idx], prod);
 
     // Add product to children of neuron output
@@ -133,6 +134,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // zero output sums
     out[out_idx]->val = 0;
+    out[out_idx]->grad = 0;
     __syncthreads();
 
     // Update neuron output value
@@ -272,8 +274,6 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         }
         // Calculate loss for each datapoint in batch
         Value* loss = mse_loss(curr_data_out, curr_data_gt, nin);
-        
-        //printf("LOSS %f\n", loss->val);
 
         // Add datapoint loss to total loss
         total_loss = add(total_loss, loss);
@@ -281,8 +281,7 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     // Do backprop to find gradients
     backward(total_loss);
     // Single step for batch
-    //update_weights(mlp, lr);
-    show_params(mlp);
+    update_weights(mlp, lr/batch_size);
     // zero grads before next batch
     zero_grad(mlp);
 

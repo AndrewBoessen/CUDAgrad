@@ -4,13 +4,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
-#include <math.h>
 
 #include "nn.h"
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 1
+#define EPOCHS 50
 #define BATCH_SIZE 10
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
@@ -55,7 +54,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 5, 5, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -131,20 +130,8 @@ int main() {
             // Add to epoch loss
             epoch_loss += batch_loss;
         }
-        // Evaluate Accuracy
-        int correct = 0;
-        for (int i = 0; i < TEST_SIZE; i++){
-            Entry curr_entry = entries[TRAIN_SIZE + i];
-            float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
-            Value** curr_in = init_values(inputs, NUM_INPUTS);
-            Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
-            // Calculate Accracy against ground truth
-            if (pow((curr_entry.label - out[0]->val),2) <= 0.05) {
-                correct++;
-            }
-        }
 
-        printf("EPOCH: %d LOSS: %f ACCURACY: %.d%%\n", i+1, epoch_loss / TRAIN_SIZE, 100 * correct / TEST_SIZE);
+        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / TRAIN_SIZE);
     }
     show_params(mlp);
 
