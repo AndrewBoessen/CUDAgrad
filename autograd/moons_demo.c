@@ -10,7 +10,7 @@
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 15
+#define EPOCHS 1
 #define BATCH_SIZE 10
 #define LEARNING_RATE 0.01
 #define DATA_SIZE 1000
@@ -55,7 +55,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 5, 15, 5, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 5, 5, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -80,7 +80,7 @@ int main() {
     int j = 0;
     for (int i = 0; i < nlayers - 1; i++) {
         int curr_size = sizes[i];
-        for (int k = 0; k < curr_size * BATCH_SIZE; k++, j++) {
+        for (int k = 0; k < sizes[i+1] * BATCH_SIZE; k++, j++) {
             out[j] = init_value(0.0);
             allocValueArr(&out[j]->children, curr_size + 1);
             out[j]->n_children = curr_size + 1;
@@ -146,6 +146,7 @@ int main() {
 
         printf("EPOCH: %d LOSS: %f ACCURACY: %.d%%\n", i+1, epoch_loss / TRAIN_SIZE, 100 * correct / TEST_SIZE);
     }
+    show_params(mlp);
 
     return EXIT_SUCCESS;
 }

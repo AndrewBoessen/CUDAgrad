@@ -130,6 +130,11 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
     // Add product to children of neuron output
     out[out_idx]->children[threadIdx.x] = prod;
+
+    // zero output sums
+    out[out_idx]->val = 0;
+    __syncthreads();
+
     // Update neuron output value
     atomicAdd(&(out[out_idx]->val), prod->val);
 
@@ -144,7 +149,7 @@ __global__ void layer_forward(Layer* layer, Value** x, Value** out, Value** prod
 
         if (n->nonlin) {
             // Activate with ReLU function if nonlin
-            out[out_idx]->val = (out[out_idx]->val < 0) ? 0 : out[out_idx]->val;\
+            out[out_idx]->val = (out[out_idx]->val < 0) ? 0 : out[out_idx]->val;
             out[out_idx]->op = RELU;
         }
     }
@@ -256,9 +261,10 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     // Calculate loss for each output
     Value* total_loss = init_value(0.0);
 
+    Value* curr_data_out[nin];
+    Value* curr_data_gt[nin];
     for (int i = 0; i < batch_size * nin; i+=nin) {
-        Value* curr_data_out[nin];
-        Value* curr_data_gt[nin];
+
         // Populate array with slice from output
         for (int j = 0; j < nin; j++) {
             curr_data_out[j] = x[i + j];
@@ -266,6 +272,8 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         }
         // Calculate loss for each datapoint in batch
         Value* loss = mse_loss(curr_data_out, curr_data_gt, nin);
+        
+        //printf("LOSS %f\n", loss->val);
 
         // Add datapoint loss to total loss
         total_loss = add(total_loss, loss);
@@ -273,7 +281,8 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
     // Do backprop to find gradients
     backward(total_loss);
     // Single step for batch
-    update_weights(mlp, lr, batch_size);
+    //update_weights(mlp, lr);
+    show_params(mlp);
     // zero grads before next batch
     zero_grad(mlp);
 
@@ -352,8 +361,8 @@ void zero_grad(MLP* mlp) {
  * @param v Pointer to the value whose weights need to be updated.
  * @param lr Learning rate for the weight update.
  */
-__device__ __inline__ void update_weights_dev(Value* v, float lr, int batch_size) {
-    v->val -= lr * (v->grad / batch_size);
+__device__ __inline__ void update_weights_dev(Value* v, float lr) {
+    v->val -= lr * v->grad;
 }
 
 /**
@@ -362,7 +371,7 @@ __device__ __inline__ void update_weights_dev(Value* v, float lr, int batch_size
  * @param layers Layers of the MLP to update
  * @param lr Learning rate
  */
-__global__ void update_params(Layer** layers, float lr, int batch_size) {
+__global__ void update_params(Layer** layers, float lr) {
     // Id for layer
     int layer_idx = blockIdx.x;
     Layer* l = layers[layer_idx];
@@ -376,10 +385,10 @@ __global__ void update_params(Layer** layers, float lr, int batch_size) {
         int weight_idx = threadIdx.x;
 
         if (weight_idx <= n->nin - 1) {
-            update_weights_dev(n->w[weight_idx], lr, batch_size);
+            update_weights_dev(n->w[weight_idx], lr);
         }
         if(weight_idx == n->nin -1) {
-            update_weights_dev(n->b, lr, batch_size);
+            update_weights_dev(n->b, lr);
         }
     }
 }
@@ -388,8 +397,9 @@ __global__ void update_params(Layer** layers, float lr, int batch_size) {
  * @brief Host function to update weight
  *
  * @param mlp MLP to update weights for
+ * @param lr Learning Rate
  */
-void update_weights(MLP* mlp, float lr, int batch_size) {
+void update_weights(MLP* mlp, float lr) {
     // Get maximum layer size
     int max_neurons = 0;
     for (int i = 0; i < mlp->nlayers; i++) {
@@ -402,7 +412,7 @@ void update_weights(MLP* mlp, float lr, int batch_size) {
     // Y dim is for neurons in layer
     dim3 grid_size(mlp->nlayers, max_neurons);
 
-    update_params<<<grid_size, max_neurons>>>(mlp->layers, lr, batch_size);
+    update_params<<<grid_size, max_neurons>>>(mlp->layers, lr);
 
     cudaDeviceSynchronize();
 }
