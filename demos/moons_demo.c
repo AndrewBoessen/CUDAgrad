@@ -4,13 +4,14 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "nn.h"
 #include "engine.h"
 #include "data.h"
 
 #define EPOCHS 50
-#define BATCH_SIZE 1
+#define BATCH_SIZE 10
 #define LEARNING_RATE 0.1
 #define DATA_SIZE 1000
 #define TRAIN_SIZE 900
@@ -54,7 +55,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 2, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -124,16 +125,33 @@ int main() {
             }
             Value** in = init_values(inputs, NUM_INPUTS * BATCH_SIZE);
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
-
+            
+            // Zero grads and vals from prev batch
+            for (int i = 0; i < BATCH_SIZE * total_neurons; i++) {
+                out[i]->val = 0;
+                out[i]->grad = 0;
+            }
             // Train batch
             float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE, products, out);
             // Add to epoch loss
             epoch_loss += batch_loss;
         }
 
-        printf("EPOCH: %d LOSS: %f\n", i+1, epoch_loss / TRAIN_SIZE);
+        // Evaluate Accuracy
+        int correct = 0;
+        for (int i = 0; i < TEST_SIZE; i++){
+            Entry curr_entry = entries[TRAIN_SIZE + i];
+            float inputs[NUM_INPUTS] = {curr_entry.x, curr_entry.y};
+            Value** curr_in = init_values(inputs, NUM_INPUTS);
+            Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
+            // Calculate Accracy against ground truth
+            if (pow((curr_entry.label - out[0]->val),2) <= 0.01) {
+                correct++;
+            }
+        }
+
+        printf("EPOCH: %d LOSS: %f ACCURACY: %.d%%\n", i+1, epoch_loss / TRAIN_SIZE, 100 * correct / TEST_SIZE);
     }
-    show_params(mlp);
 
     return EXIT_SUCCESS;
 }
