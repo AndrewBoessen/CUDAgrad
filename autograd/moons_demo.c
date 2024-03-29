@@ -10,8 +10,8 @@
 #include "data.h"
 
 #define EPOCHS 50
-#define BATCH_SIZE 10
-#define LEARNING_RATE 0.01
+#define BATCH_SIZE 1
+#define LEARNING_RATE 0.1
 #define DATA_SIZE 1000
 #define TRAIN_SIZE 900
 #define TEST_SIZE 100
@@ -54,7 +54,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 2, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -102,7 +102,7 @@ int main() {
         float epoch_loss = 0.0;
 
         // Variable learning rate
-        float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
+        float lr = LEARNING_RATE - (0.09 * ((float)(i+1)/EPOCHS));
 
         // Only train on training set
         shuffle_entries(entries, TRAIN_SIZE);

@@ -176,8 +176,8 @@ void power_backward(Value* v) {
  * Thus, the final gradient for a is: dv/da = (chosen local derivative) * v->grad
  */
 void relu_backward(Value* v) {
-    for (int i = 0; i < v->n_children; i++) {
-        if (v->children[i]->val > 0) {
+    if (v->val > 0) {
+        for (int i = 0; i < v->n_children; i++) {
             v->children[i]->grad += v->grad;
         }
     }

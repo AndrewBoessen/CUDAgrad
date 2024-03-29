@@ -241,6 +241,7 @@ Value** mlp_forward(MLP* mlp, Value** x, int nin) {
  * @return Total loss of entire batch
  */
 float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_size, Value** products, Value** out){
+    printf("INPUT %f %f\n", x[0]->val, x[1]->val);
     for (int l = 0; l < mlp->nlayers; l++) {
         Layer* curr_layer = mlp->layers[l];
         // Total number of neurons in entire batch
@@ -251,7 +252,7 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         layer_forward<<<grid_size, nin>>>(curr_layer, x, out, products);
         // Wait for kernel to finish before updating x
         cudaDeviceSynchronize();
-        
+
         // Next layers inputs are current layers outputs
         x = out;
         // Set starting points for arrays
@@ -260,6 +261,8 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         // Number of next inputs are number of current outputs
         nin = curr_layer->nout;
     }
+    show_params(mlp);
+    printf("OUT %f\n", x[0]->val);
     // Calculate loss for each output
     Value* total_loss = init_value(0.0);
 
@@ -278,12 +281,15 @@ float train(MLP* mlp, Value** x, int nin, Value** y_true, float lr, int batch_si
         // Add datapoint loss to total loss
         total_loss = add(total_loss, loss);
     }
+    printf("TOTAL_LOSS %f\n", total_loss->val);
     // Do backprop to find gradients
     backward(total_loss);
+    show_params(mlp);
     // Single step for batch
     update_weights(mlp, lr/batch_size);
     // zero grads before next batch
     zero_grad(mlp);
+    show_params(mlp);
 
     return total_loss->val;
 }
@@ -328,7 +334,6 @@ __global__ void zero_grad_kernel(Layer** layers) {
     // Zero grads for weight and bias
     n->w[weight_idx]->grad = 0;
     n->b->grad = 0;
-    
 }
 
 /**
@@ -431,6 +436,7 @@ void show_params(MLP* mlp){
             for (int k = 0; k < neuron->nin; k++) {
                 print_value(neuron->w[k]);
             }
+            printf("Bias %f\n", neuron->b->val);
         }
     }
         printf("\n\n");
