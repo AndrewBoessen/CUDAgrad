@@ -10,9 +10,9 @@
 #include "engine.h"
 #include "data.h"
 
-#define EPOCHS 15
+#define EPOCHS 50
 #define BATCH_SIZE 10
-#define LEARNING_RATE 0.01
+#define LEARNING_RATE 0.1
 #define DATA_SIZE 1000
 #define TRAIN_SIZE 900
 #define TEST_SIZE 100
@@ -55,7 +55,7 @@ int main() {
     printf("Loaded %d entries from %s\n", num_entries, filename);
 
     // Init MLP
-    int sizes[] = {NUM_INPUTS, 5, 15, 5, NUM_OUTPUTS};
+    int sizes[] = {NUM_INPUTS, 16, 16, NUM_OUTPUTS};
     int nlayers = sizeof(sizes) / sizeof(int);
 
     MLP* mlp = init_mlp(sizes, nlayers);
@@ -67,16 +67,47 @@ int main() {
     // Shuffle entries before taking training dataset
     shuffle_entries(entries, DATA_SIZE);
 
+    int total_neurons = 0;
+    int total_params = 0;
+    for (int i = 1; i < nlayers; i++) {
+        total_neurons += sizes[i];
+        total_params += sizes[i-1] * sizes[i];
+    }
+    // Allocate empty value arr for outputs
+    Value** out;
+    allocValueArr(&out, BATCH_SIZE * total_neurons);
+    // Allocate space for children of outputs
+    int j = 0;
+    for (int i = 0; i < nlayers - 1; i++) {
+        int curr_size = sizes[i];
+        for (int k = 0; k < sizes[i+1] * BATCH_SIZE; k++, j++) {
+            out[j] = init_value(0.0);
+            allocValueArr(&out[j]->children, curr_size + 1);
+            out[j]->n_children = curr_size + 1;
+            out[j]->op = ADD;
+        }
+    }
+    
+    // Allocate array for prodcuts of inputs and weights
+    Value** products;
+    allocValueArr(&products, BATCH_SIZE * total_params);
+    // Allocate space for products children
+    for(int i = 0; i < BATCH_SIZE * total_params; i++) {
+        products[i] = init_value(0);
+        allocValueArr(&(products[i]->children), 2);
+    }
+
     printf("Training for %d Epochs with Batch Size %d\n", EPOCHS, BATCH_SIZE);
     // Train for number of epochs
     for (int i = 0; i < EPOCHS; i++) {
         float epoch_loss = 0.0;
 
         // Variable learning rate
-        float lr = LEARNING_RATE - (0.009 * ((float)(i+1)/EPOCHS));
+        float lr = LEARNING_RATE - (0.09 * ((float)(i+1)/EPOCHS));
 
         // Only train on training set
         shuffle_entries(entries, TRAIN_SIZE);
+
         // SGD - calculate loss for a batch of 10 data points
         for (int j = 0; j < TRAIN_SIZE / BATCH_SIZE; j++) {
             // starting index
@@ -94,12 +125,18 @@ int main() {
             }
             Value** in = init_values(inputs, NUM_INPUTS * BATCH_SIZE);
             Value** gt = init_values(grnd_truth, NUM_OUTPUTS * BATCH_SIZE);
-
+            
+            // Zero grads and vals from prev batch
+            for (int i = 0; i < BATCH_SIZE * total_neurons; i++) {
+                out[i]->val = 0;
+                out[i]->grad = 0;
+            }
             // Train batch
-            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE);
+            float batch_loss = train(mlp, in, NUM_INPUTS, gt, lr, BATCH_SIZE, products, out);
             // Add to epoch loss
             epoch_loss += batch_loss;
         }
+
         // Evaluate Accuracy
         int correct = 0;
         for (int i = 0; i < TEST_SIZE; i++){
@@ -108,7 +145,7 @@ int main() {
             Value** curr_in = init_values(inputs, NUM_INPUTS);
             Value** out = mlp_forward(mlp, curr_in, NUM_INPUTS);
             // Calculate Accracy against ground truth
-            if (pow((curr_entry.label - out[0]->val),2) <= 0.05) {
+            if (pow((curr_entry.label - out[0]->val),2) <= 0.01) {
                 correct++;
             }
         }
