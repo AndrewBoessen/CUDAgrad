@@ -3,8 +3,8 @@ CC = gcc
 NVCC = nvcc
 
 # Compiler flags
-CFLAGS = -g -Wall -Wextra -std=c99
-NVCCFLAGS = -g -G -arch=sm_89 -O3
+CFLAGS = -Wall -Wextra -std=c99
+NVCCFLAGS = -arch=sm_89 -O3
 
 # Include directories
 INC_DIRS = -I./autograd/
